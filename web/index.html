@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>doruk-ai-harness — discuss → align → ship</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0e1726;
+    --bg-2: #0b1320;
+    --surface: #15203355;
+    --surface-solid: #16223a;
+    --surface-2: #1c2b46;
+    --border: #2a3a59;
+    --border-bright: #3a4f78;
+    --text: #e8eef9;
+    --text-dim: #9fb0cc;
+    --text-faint: #6b7d9e;
+    --gold: #e0b15e;
+    --gold-dim: #b8904a;
+    --sage: #7fb8a0;
+    --rose: #d98a8a;
+    --blue: #6ea8e6;
+    --discuss: #6ea8e6;
+    --align: #e0b15e;
+    --ship: #7fb8a0;
+    --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+    --font-serif: "Instrument Serif", Georgia, serif;
+    --radius: 14px;
+    --shadow: 0 18px 50px -22px rgba(0,0,0,0.7);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1100px 700px at 80% -10%, #16284a 0%, transparent 55%),
+      radial-gradient(900px 600px at -5% 10%, #122036 0%, transparent 50%),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-wrap: break-word;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--gold); }
+
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(110,168,230,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110,168,230,0.035) 1px, transparent 1px);
+    background-size: 46px 46px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 0 24px 100px; }
+
+  /* top nav */
+  .topnav {
+    position: sticky; top: 0; z-index: 40;
+    backdrop-filter: blur(12px);
+    background: rgba(11,19,32,0.82);
+    border-bottom: 1px solid var(--border);
+  }
+  .topnav-inner {
+    max-width: 1180px; margin: 0 auto; padding: 12px 24px;
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  }
+  .brand { font-family: var(--font-mono); font-weight: 600; font-size: 14px; letter-spacing: 0.5px; color: var(--text); }
+  .brand .dot { color: var(--gold); }
+  .navlinks { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+  .navlinks a {
+    font-family: var(--font-mono); font-size: 12px; text-decoration: none;
+    color: var(--text-dim); padding: 6px 12px; border-radius: 8px; border: 1px solid transparent;
+    transition: all .15s ease;
+  }
+  .navlinks a:hover { color: var(--text); border-color: var(--border-bright); background: var(--surface); }
+
+  /* hero */
+  header.hero { padding: 70px 0 30px; }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 18px;
+  }
+  h1 { font-family: var(--font-serif); font-weight: 400; font-size: clamp(40px, 7vw, 76px); line-height: 1.02; margin: 0 0 18px; letter-spacing: -0.5px; }
+  h1 .verb-d { color: var(--discuss); font-style: italic; }
+  h1 .verb-a { color: var(--align); font-style: italic; }
+  h1 .verb-s { color: var(--ship); font-style: italic; }
+  .lede { font-size: clamp(17px, 2.2vw, 21px); color: var(--text-dim); max-width: 760px; line-height: 1.55; }
+  .lede strong { color: var(--text); font-weight: 600; }
+
+  /* pipeline (hero diagram) */
+  .pipeline {
+    margin: 46px 0 10px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px; position: relative;
+  }
+  .beat {
+    position: relative; text-align: left;
+    border: 1px solid var(--border-bright); border-radius: var(--radius);
+    background: linear-gradient(180deg, var(--surface-2), var(--surface-solid));
+    padding: 22px 22px 20px; cursor: pointer; overflow: hidden;
+    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+  }
+  .beat:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+  .beat::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+  .beat.b-discuss { border-color: #2e4a72; } .beat.b-discuss::before { background: var(--discuss); }
+  .beat.b-align   { border-color: #5e4d2c; } .beat.b-align::before   { background: var(--align); }
+  .beat.b-ship    { border-color: #2f5246; } .beat.b-ship::before    { background: var(--ship); }
+  .beat .step { font-family: var(--font-mono); font-size: 11px; letter-spacing: 2px; color: var(--text-faint); text-transform: uppercase; }
+  .beat h3 { font-size: 26px; margin: 6px 0 4px; font-weight: 700; letter-spacing: -0.3px; }
+  .beat.b-discuss h3 { color: var(--discuss); }
+  .beat.b-align h3 { color: var(--align); }
+  .beat.b-ship h3 { color: var(--ship); }
+  .beat .tag { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); }
+  .beat p { margin: 12px 0 0; font-size: 14px; color: var(--text-dim); line-height: 1.5; }
+  .beat .more { margin-top: 14px; font-family: var(--font-mono); font-size: 11px; color: var(--gold); letter-spacing: 0.5px; }
+  .arrow {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    font-family: var(--font-mono); color: var(--text-faint); font-size: 22px; z-index: 2;
+  }
+  .arrow.a1 { left: calc(33.33% - 4px); }
+  .arrow.a2 { left: calc(66.66% - 4px); }
+
+  .hitl {
+    margin-top: 16px; text-align: center;
+    border: 1px dashed var(--border-bright); border-radius: 12px; padding: 12px 18px;
+    background: var(--surface); color: var(--text-dim); font-size: 14px;
+  }
+  .hitl b { color: var(--gold); font-weight: 600; }
+
+  /* section scaffolding */
+  section { padding-top: 64px; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
+  .sec-num { font-family: var(--font-mono); font-size: 13px; color: var(--gold); border: 1px solid var(--gold-dim); border-radius: 6px; padding: 2px 9px; }
+  .sec-head h2 { font-size: clamp(26px, 4vw, 36px); margin: 0; font-weight: 700; letter-spacing: -0.5px; }
+  .sec-head .priority { margin-left: auto; font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-faint); }
+  .sec-sub { color: var(--text-dim); max-width: 800px; margin: 8px 0 28px; font-size: 16px; }
+  .sec-sub code { font-family: var(--font-mono); font-size: 13px; background: var(--surface-2); padding: 1px 6px; border-radius: 5px; color: var(--gold); }
+
+  .headline-flag {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: #0e1726; background: var(--gold); padding: 3px 10px; border-radius: 6px; font-weight: 600;
+    margin-left: auto;
+  }
+
+  /* card grids */
+  .grid { display: grid; gap: 16px; }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+
+  .card {
+    min-width: 0;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface-solid); padding: 20px; cursor: pointer;
+    transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+    position: relative;
+  }
+  .card:hover { transform: translateY(-3px); border-color: var(--border-bright); box-shadow: var(--shadow); }
+  .card.static { cursor: default; }
+  .card.static:hover { transform: none; box-shadow: none; border-color: var(--border); }
+  .card .kname { font-family: var(--font-mono); font-size: 14px; font-weight: 600; color: var(--text); }
+  .card .krole { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-faint); margin-top: 2px; }
+  .card p { font-size: 14px; color: var(--text-dim); margin: 12px 0 0; line-height: 1.5; }
+  .card .open-hint { margin-top: 14px; font-family: var(--font-mono); font-size: 11px; color: var(--gold); opacity: 0; transition: opacity .15s; }
+  .card:hover .open-hint { opacity: 1; }
+  .badge { display: inline-block; font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; padding: 2px 8px; border-radius: 20px; }
+  .b-state { color: var(--sage); border: 1px solid #34564a; }
+  .b-deleg { color: var(--rose); border: 1px solid #6b3f3f; }
+
+  /* the quality engine callout */
+  .engine {
+    margin-top: 18px; border: 1px solid var(--gold-dim);
+    border-radius: var(--radius); padding: 22px 24px;
+    background: linear-gradient(180deg, #1d2438, #15203355);
+    position: relative; overflow: hidden;
+  }
+  .engine::before { content: ""; position: absolute; left:0; top:0; bottom:0; width: 4px; background: var(--gold); }
+  .engine h4 { margin: 0 0 8px; font-size: 17px; color: var(--gold); }
+  .engine p { margin: 0; color: var(--text-dim); font-size: 14.5px; }
+  .engine .gates { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  .engine .gate { font-family: var(--font-mono); font-size: 12px; padding: 6px 12px; border: 1px solid var(--border-bright); border-radius: 8px; background: var(--surface); color: var(--text); }
+  .engine .gate b { color: var(--gold); }
+
+  /* ship steps strip */
+  .steps { margin-top: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 10px; }
+  .stepchip {
+    border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--surface-solid);
+    font-size: 13px; color: var(--text-dim); position: relative;
+  }
+  .stepchip .n { font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); }
+  .stepchip.review { border-color: var(--gold-dim); }
+  .stepchip.review .n { color: var(--gold); }
+  .stepchip b { color: var(--text); font-weight: 600; display: block; }
+
+  /* two-horizon diagram for state */
+  .horizons { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .horizon { border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; background: var(--surface-solid); }
+  .horizon h4 { margin: 0 0 4px; font-size: 16px; }
+  .horizon .sub { font-family: var(--font-mono); font-size: 11px; color: var(--sage); letter-spacing: 1px; text-transform: uppercase; }
+  .horizon p { font-size: 14px; color: var(--text-dim); margin: 10px 0 0; }
+  .horizon code { font-family: var(--font-mono); font-size: 12.5px; color: var(--gold); }
+
+  .tree {
+    font-family: var(--font-mono); font-size: 12.5px; line-height: 1.7; white-space: pre;
+    overflow-x: auto; color: var(--text-dim);
+    background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px 20px; margin: 0;
+  }
+  .tree .hl { color: var(--gold); font-weight: 600; }
+  .tree .ann { color: var(--text-faint); font-style: italic; }
+
+  /* delegation roles table */
+  .ve-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+  table.ve { border-collapse: collapse; width: 100%; min-width: 540px; font-size: 14px; }
+  table.ve th, table.ve td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.ve thead th { background: var(--surface-2); font-family: var(--font-mono); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); }
+  table.ve tbody tr:last-child td { border-bottom: none; }
+  table.ve td strong { color: var(--text); }
+  table.ve .w-none { color: var(--rose); font-family: var(--font-mono); font-size: 12px; }
+  table.ve .w-box { color: var(--sage); font-family: var(--font-mono); font-size: 12px; }
+
+  .loop { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 10px; margin-top: 16px; }
+  .loopstep { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--surface-solid); }
+  .loopstep .n { font-family: var(--font-mono); font-size: 11px; color: var(--rose); }
+  .loopstep b { display: block; color: var(--text); margin: 2px 0; }
+  .loopstep span { font-size: 13px; color: var(--text-dim); }
+
+  .compose {
+    margin-top: 56px; border: 1px solid var(--border-bright); border-radius: var(--radius);
+    background: linear-gradient(135deg, #16243f, #101a2c); padding: 30px 32px;
+  }
+  .compose h3 { margin: 0 0 10px; font-family: var(--font-serif); font-weight: 400; font-size: 28px; }
+  .compose p { margin: 0; color: var(--text-dim); max-width: 820px; }
+  .compose .tagline { margin-top: 18px; font-family: var(--font-mono); font-size: 14px; color: var(--gold); letter-spacing: 0.5px; }
+
+  footer { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--border); color: var(--text-faint); font-size: 13px; font-family: var(--font-mono); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+
+  /* drill-in modal */
+  .modal-back {
+    position: fixed; inset: 0; z-index: 100; display: none;
+    background: rgba(6,11,20,0.78); backdrop-filter: blur(6px);
+    align-items: flex-start; justify-content: center; padding: 6vh 18px 18px; overflow-y: auto;
+  }
+  .modal-back.open { display: flex; }
+  .modal {
+    width: min(700px, 100%); border: 1px solid var(--border-bright); border-radius: 16px;
+    background: var(--surface-solid); box-shadow: 0 30px 80px -20px rgba(0,0,0,0.8);
+    overflow: hidden; animation: pop .18s ease;
+  }
+  @keyframes pop { from { transform: translateY(14px) scale(.98); opacity: 0; } to { transform: none; opacity: 1; } }
+  .modal-head { padding: 22px 26px 18px; border-bottom: 1px solid var(--border); position: relative; }
+  .modal-head::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--gold); }
+  .modal-head .mrole { font-family: var(--font-mono); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint); }
+  .modal-head h3 { margin: 4px 0 0; font-size: 24px; font-family: var(--font-mono); }
+  .modal-close { position: absolute; top: 16px; right: 18px; background: var(--surface-2); border: 1px solid var(--border-bright); color: var(--text-dim); width: 34px; height: 34px; border-radius: 9px; cursor: pointer; font-size: 18px; line-height: 1; }
+  .modal-close:hover { color: var(--text); border-color: var(--gold-dim); }
+  .modal-body { padding: 22px 26px 28px; }
+  .modal-body .lead { font-size: 15.5px; color: var(--text); margin: 0 0 16px; line-height: 1.55; }
+  .modal-body h5 { font-family: var(--font-mono); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); margin: 20px 0 8px; }
+  .modal-body ul { margin: 0; padding-left: 18px; }
+  .modal-body li { color: var(--text-dim); font-size: 14px; margin-bottom: 7px; line-height: 1.5; }
+  .modal-body li b { color: var(--text); }
+  .modal-body .trigger { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-top: 8px; word-break: break-word; }
+  .modal-body .pathline { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-faint); margin-top: 18px; }
+
+  @media (max-width: 860px) {
+    .pipeline { grid-template-columns: 1fr; }
+    .arrow.a1, .arrow.a2 { display: none; }
+    .grid-3, .grid-2, .horizons { grid-template-columns: 1fr; }
+    .headline-flag, .sec-head .priority { margin-left: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="topnav-inner">
+    <span class="brand">doruk<span class="dot">·</span>ai<span class="dot">·</span>harness</span>
+    <div class="navlinks">
+      <a href="#workflow">workflow</a>
+      <a href="#state">state &amp; memory</a>
+      <a href="#delegation">delegation</a>
+      <a href="#compose">compose</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="eyebrow">A human-gated coding harness</div>
+    <h1><span class="verb-d">Discuss</span> → <span class="verb-a">Align</span> → <span class="verb-s">Ship</span></h1>
+    <p class="lede">
+      A from-scratch pipeline that drives a task from a vague idea to a review-ready PR, with a
+      <strong>human in the loop at every decision</strong> and code quality, complexity, and simplification
+      reviewed by <strong>multiple models from different viewpoints</strong>, so what ships is always the
+      highest-quality version, not the first one that compiles.
+    </p>
+
+    <div class="pipeline">
+      <div class="beat b-discuss" data-skill="discuss">
+        <div class="step">Beat 1 · diverge</div>
+        <h3>discuss</h3>
+        <span class="tag">find the shape</span>
+        <p>Loose, opinionated, thinking-out-loud exploration. The agent brings opinions and pokes at assumptions. No spec, no plan, no code yet.</p>
+        <div class="more">click to drill in →</div>
+      </div>
+      <div class="beat b-align" data-skill="align">
+        <div class="step">Beat 2 · converge</div>
+        <h3>align</h3>
+        <span class="tag">one question at a time</span>
+        <p>Grills the design into shared agreement, one pinned-down question at a time, each carrying a recommended answer. Depth scales soft to hard.</p>
+        <div class="more">click to drill in →</div>
+      </div>
+      <div class="beat b-ship" data-skill="ship">
+        <div class="step">Beat 3 · build + review</div>
+        <h3>ship</h3>
+        <span class="tag">→ review-ready PR</span>
+        <p>Drives the aligned spec to a PR with minimal check-ins and built-in multi-model quality gates. Stops for the human at the review gate.</p>
+        <div class="more">click to drill in →</div>
+      </div>
+      <div class="arrow a1">→</div>
+      <div class="arrow a2">→</div>
+    </div>
+    <div class="hitl">A <b>human is in the loop at every decision</b> · a <b>different model</b> reviews the work before it can move forward</div>
+  </header>
+
+  <!-- 1. WORKFLOW -->
+  <section id="workflow">
+    <div class="sec-head">
+      <span class="sec-num">01</span>
+      <h2>The workflow</h2>
+      <span class="headline-flag">★ the headline</span>
+    </div>
+    <p class="sec-sub">
+      The spine of the harness. Three beats, deliberately separated so each does one job well. Everything
+      else exists to serve this loop. Skills live at <code>skills/workflow/</code>.
+    </p>
+
+    <div class="grid grid-3">
+      <div class="card" data-skill="discuss">
+        <div class="kname">discuss</div>
+        <div class="krole">beat 1 — diverge</div>
+        <p>Open, divergent riffing to find the shape of a task. Holds the gate: hands to <code>align</code> only when you say so.</p>
+        <div class="open-hint">→ open</div>
+      </div>
+      <div class="card" data-skill="align">
+        <div class="kname">align</div>
+        <div class="krole">beat 2 — converge</div>
+        <p>One-question-at-a-time grilling that converges on a shared design. Runs before ship by design.</p>
+        <div class="open-hint">→ open</div>
+      </div>
+      <div class="card" data-skill="ship">
+        <div class="kname">ship</div>
+        <div class="krole">beat 3 — build + review</div>
+        <p>Drives the aligned spec to a review-ready PR with built-in quality gates. The orchestration is mine; it composes third-party tools (the <b>superpowers</b> build loop, <b>ponytail</b> simplification) — see <a href="https://github.com/doruktarhan/doruk-ai-harness/blob/main/PROVENANCE.md">Provenance</a>.</p>
+        <div class="open-hint">→ open</div>
+      </div>
+    </div>
+
+    <div class="engine">
+      <h4>The quality engine — why the loop is worth running</h4>
+      <p>
+        At multiple points a <b>different model</b> reviews the work for correctness, complexity, and
+        simplification before it can move forward. The point is not redundancy: spec-level, plan-level, and
+        diff-level blind spots are genuinely different, and a model that did not write the work catches what
+        the author cannot see.
+      </p>
+      <div class="gates">
+        <span class="gate"><b>Gate ③</b> cross-model spec review</span>
+        <span class="gate"><b>Gate ⑤+⑥</b> plan review + simplification pass</span>
+        <span class="gate"><b>Gate ⑨</b> final diff review, stop for the human</span>
+      </div>
+    </div>
+
+    <p class="sec-sub" style="margin-top:34px;margin-bottom:0;">Inside <code>ship</code>: the build loop, minimal check-ins, one planned stop (the review gate):</p>
+    <div class="steps">
+      <div class="stepchip"><span class="n">1</span><b>Scope</b>goal + scope in ~2 lines</div>
+      <div class="stepchip"><span class="n">2</span><b>Spec</b>written into <code>.doruk/</code></div>
+      <div class="stepchip review"><span class="n">3</span><b>Spec review</b>different model</div>
+      <div class="stepchip"><span class="n">4</span><b>Plan</b>implementation plan</div>
+      <div class="stepchip review"><span class="n">5</span><b>Plan review</b>fresh pass</div>
+      <div class="stepchip review"><span class="n">6</span><b>Simplify</b>deletion-biased pass</div>
+      <div class="stepchip"><span class="n">7</span><b>Execute</b>inline or subagents</div>
+      <div class="stepchip"><span class="n">8</span><b>PR</b>project's normal ritual</div>
+      <div class="stepchip review"><span class="n">9</span><b>Review gate</b>stop for the human</div>
+    </div>
+  </section>
+
+  <!-- 2. STATE & MEMORY -->
+  <section id="state">
+    <div class="sec-head">
+      <span class="sec-num">02</span>
+      <h2>State &amp; memory</h2>
+      <span class="priority">the .doruk/ layer</span>
+    </div>
+    <p class="sec-sub">
+      An LLM session is stateless. <code>.doruk/</code> is a portable, agent-readable record of where the
+      work stands and what the next move is, small enough to read first, structured enough to trust. Each
+      run orients on it before touching code and writes back so work <strong>compounds</strong>.
+      Skills live at <code>skills/state-memory/</code>.
+    </p>
+
+    <div class="horizons">
+      <div class="horizon">
+        <div class="sub">Short-term · working memory</div>
+        <h4>Where does the work stand?</h4>
+        <p><code>STATE.md</code> (the landscape) plus each feature's <code>handoff.md</code>. Built around the
+        "what's the next move?" test so it stays a board, not a log. Trimmed every session.</p>
+      </div>
+      <div class="horizon">
+        <div class="sub">Long-term · durable memory</div>
+        <h4>What did we learn, and why?</h4>
+        <p><code>feature.md</code> records plus <code>MEMORY.md</code> / <code>memory/</code> notes. Decisions
+        and their WHY, gotchas, cross-feature learnings, written for future readers.</p>
+      </div>
+    </div>
+
+    <div class="grid grid-3">
+      <div class="card" data-skill="handoff">
+        <div class="kname">handoff</div>
+        <div class="krole"><span class="badge b-state">state-memory</span></div>
+        <p>The universal state organizer. Keeps STATE.md and each feature's handoff.md current; bootstraps <code>.doruk/</code> on first use.</p>
+        <div class="open-hint">→ open</div>
+      </div>
+      <div class="card" data-skill="feature-organize">
+        <div class="kname">feature-organize</div>
+        <div class="krole"><span class="badge b-state">state-memory</span></div>
+        <p>The on-ship distiller. Rewrites feature.md into a durable record and triages in-flight scratch.</p>
+        <div class="open-hint">→ open</div>
+      </div>
+      <div class="card" data-skill="wrap">
+        <div class="kname">wrap</div>
+        <div class="krole"><span class="badge b-state">state-memory</span></div>
+        <p>End-of-session checklist for multi-agent folders. Runs consistency checks, then mechanical updates. Composes with handoff.</p>
+        <div class="open-hint">→ open</div>
+      </div>
+    </div>
+
+    <p class="sec-sub" style="margin-top:30px;margin-bottom:14px;">The folder convention: three tiers, no overlap, <strong>reference don't duplicate</strong>:</p>
+    <pre class="tree">.doruk/
+├── <span class="hl">STATE.md</span>                     <span class="ann"># the landscape: thin index + backlog (read first)</span>
+├── <span class="hl">MEMORY.md</span>                    <span class="ann"># durable cross-feature learnings (the index)</span>
+├── memory/                      <span class="ann"># longer notes, one file per topic</span>
+└── features/
+    └── NN-slug/                 <span class="ann"># one folder per feature, permanent</span>
+        ├── <span class="hl">feature.md</span>           <span class="ann"># durable record: orientation, decisions + WHY, gotchas</span>
+        ├── <span class="hl">handoff.md</span>           <span class="ann"># this feature's live, in-flight handoff</span>
+        ├── task-NN-slug/        <span class="ann"># optional: a delegated task's spec</span>
+        └── archive/             <span class="ann"># scratch that was only true during the work</span></pre>
+  </section>
+
+  <!-- 3. DELEGATION -->
+  <section id="delegation">
+    <div class="sec-head">
+      <span class="sec-num">03</span>
+      <h2>Delegation &amp; isolation</h2>
+      <span class="priority">hand a beat to a different model</span>
+    </div>
+    <p class="sec-sub">
+      Any beat can be handed to a different model, OpenAI Codex or Google Gemini, without giving up
+      control. The isolation primitive is the <strong>git worktree</strong>: the delegate works in its own
+      sandboxed checkout, and the driving agent reviews the diff before anything reaches main.
+      Skills live at <code>skills/delegation/</code>.
+    </p>
+
+    <div class="ve-table-wrap" style="margin-bottom:22px;">
+      <table class="ve">
+        <thead>
+          <tr><th>Role</th><th>What it does</th><th>Write access</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Consultant</strong><br><span style="color:var(--text-faint);font-size:12px">read-only</span></td>
+            <td>Critiques a plan, an architecture, or existing code. Returns problems, alternatives, and agreements, makes no changes. This is the role ship's cross-model reviews use.</td>
+            <td class="w-none">none</td>
+          </tr>
+          <tr>
+            <td><strong>Implementer</strong></td>
+            <td>Does the implementation in an isolated worktree. The driving agent reviews and merges or discards. For when stuck after honest attempts or context exceeds the window.</td>
+            <td class="w-box">sandboxed → worktree</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid grid-3">
+      <div class="card" data-skill="codex-feedback-planning">
+        <div class="kname">codex-feedback-planning</div>
+        <div class="krole"><span class="badge b-deleg">consultant · codex</span></div>
+        <p>OpenAI Codex as a read-only consultant on a plan or design. No changes to the codebase.</p>
+        <div class="open-hint">→ open</div>
+      </div>
+      <div class="card" data-skill="codex-task-delegator">
+        <div class="kname">codex-task-delegator</div>
+        <div class="krole"><span class="badge b-deleg">implementer · codex</span></div>
+        <p>OpenAI Codex as an implementer in an isolated worktree. Claude reviews the diff and merges after testing.</p>
+        <div class="open-hint">→ open</div>
+      </div>
+      <div class="card" data-skill="gemini-delegate">
+        <div class="kname">gemini-delegate</div>
+        <div class="krole"><span class="badge b-deleg">either role · gemini</span></div>
+        <p>Google Gemini in either role, consultant via plan mode or implementer via yolo + worktree, auto-selected from the task.</p>
+        <div class="open-hint">→ open</div>
+      </div>
+      <div class="card" data-skill="worktree-init">
+        <div class="kname">worktree-init</div>
+        <div class="krole"><span class="badge b-deleg">isolation</span></div>
+        <p>Creates the worktree, copies untracked local files (.env, config) that never travel with git, and bootstraps the environment so it runs.</p>
+        <div class="open-hint">→ open</div>
+      </div>
+      <div class="card" data-skill="worktree-lifecycle">
+        <div class="kname">worktree-lifecycle</div>
+        <div class="krole"><span class="badge b-deleg">isolation</span></div>
+        <p>The operating manual for an agent inside a worktree: reads its context file, then follows build / test / cleanup rules.</p>
+        <div class="open-hint">→ open</div>
+      </div>
+      <div class="card static">
+        <div class="kname">the delegation loop</div>
+        <div class="krole">isolate → brief → invoke → review → test</div>
+        <div class="loop">
+          <div class="loopstep"><span class="n">1</span><b>Isolate</b><span>worktree on a branch</span></div>
+          <div class="loopstep"><span class="n">2</span><b>Brief</b><span>exhaustive context pack</span></div>
+          <div class="loopstep"><span class="n">3</span><b>Invoke</b><span>CLI in its worktree</span></div>
+          <div class="loopstep"><span class="n">4</span><b>Review</b><span>read the diff</span></div>
+          <div class="loopstep"><span class="n">5</span><b>Test</b><span>pass → merge · fail → discard</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPOSE -->
+  <section id="compose" style="padding-top:20px;">
+    <div class="compose">
+      <h3>How it all composes</h3>
+      <p>
+        The <strong style="color:var(--gold)">workflow</strong> is the spine: discuss finds the shape, align
+        converges on a design, ship drives it to a review-ready PR with quality reviewed by multiple models at
+        every gate. The <strong style="color:var(--sage)">state &amp; memory</strong> layer is what the
+        workflow orients on before it starts and writes back to after it finishes, so each run compounds.
+        <strong style="color:var(--rose)">Delegation &amp; isolation</strong> is how any beat gets handed to a
+        different model safely, in a worktree, with the driving agent reviewing the diff before anything reaches main.
+      </p>
+      <div class="tagline">One workflow · one folder of state · many models.</div>
+    </div>
+  </section>
+
+  <footer>
+    <span>doruk-ai-harness · discuss → align → ship</span>
+    <span>Built on Claude Code. Some skills compose third-party tools (superpowers, ponytail) and external CLIs (Codex, Gemini) I did not build — full honesty in <a href="https://github.com/doruktarhan/doruk-ai-harness/blob/main/PROVENANCE.md">PROVENANCE.md</a>.</span>
+    <span>self-contained · GitHub Pages ready · no build</span>
+  </footer>
+</div>
+
+<!-- drill-in modal -->
+<div class="modal-back" id="modalBack" role="dialog" aria-modal="true">
+  <div class="modal" role="document">
+    <div class="modal-head">
+      <div class="mrole" id="mRole"></div>
+      <h3 id="mName"></h3>
+      <button class="modal-close" id="mClose" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body" id="mBody"></div>
+  </div>
+</div>
+
+<script>
+const SKILLS = {
+  discuss: {
+    role: "workflow · beat 1 — diverge",
+    name: "discuss",
+    lead: "Loose, opinionated, thinking-out-loud exploration, the OPPOSITE of one-question-at-a-time interrogation. The agent acts like a sharp colleague to find the shape of the thing.",
+    sections: [
+      { h: "What it does", items: [
+        "Brings opinions, proposes ideas, names tradeoffs, pokes at assumptions, and pushes back when it thinks you're wrong, in short turns, not one big funnel.",
+        "Orients briefly on existing <b>state/handoff context</b> (active or paused threads, a feature's orientation block) if a <code>.doruk/</code> layer exists, then just discusses." ] },
+      { h: "What it deliberately does NOT do", items: [
+        "Does not converge, write a spec or plan, or write code.",
+        "<b>Holds the gate:</b> if you drift toward \"just build it,\" it reminds you this is still discussion.",
+        "Hands off to <b>align</b> only when you explicitly say so, writing a tight summary of the decided shape and open questions." ] }
+    ],
+    trigger: "Triggers: /discuss · \"let's discuss\" · \"let's kick this around\" · \"riff with me\"",
+    path: "skills/workflow/discuss/SKILL.md"
+  },
+  align: {
+    role: "workflow · beat 2 — converge",
+    name: "align",
+    lead: "Turns the idea into a design both sides agree on by interviewing you one question at a time, each question carrying the agent's recommended answer. Runs after discuss and before ship.",
+    sections: [
+      { h: "How it asks", items: [
+        "One short question at a time, each with a recommended answer.",
+        "If the <b>codebase</b> can answer it, the agent goes and looks instead of asking.",
+        "Does not move on while an answer is still vague, pins each point down first." ] },
+      { h: "Depth scales soft to hard", items: [
+        "<b>Soft</b> — a few questions on the genuinely open points, then converge. For small or already-clear work.",
+        "<b>Hard</b> — relentless: walk every branch of the decision tree, resolve dependencies one by one, let no vague answer slide. For big, ambiguous, or architectural work.",
+        "When unsure, starts soft and goes deeper only where answers stay fuzzy." ] },
+      { h: "Why before ship", items: [
+        "Ship will kick a still-fuzzy or multi-feature scope back here rather than build on sand. When aligned, align offers to run ship." ] }
+    ],
+    trigger: "Triggers: /align · \"lets align\" · \"align on this\" · \"grill me on this\"",
+    path: "skills/workflow/align/SKILL.md"
+  },
+  ship: {
+    role: "workflow · beat 3 — build + multi-model review",
+    name: "ship",
+    lead: "Drives the whole build loop with minimal check-ins, stopping for a human only at the decision points that actually need a person. The single planned stop is the review gate. The orchestration is my contribution; it composes third-party tools (the superpowers build loop, ponytail simplification) plus my own codex-feedback-planning for cross-model review.",
+    sections: [
+      { h: "The 9-step loop", items: [
+        "<b>1 Scope</b> — goal + scope in ~2 lines; multi-feature or fuzzy → back to align.",
+        "<b>2 Spec</b> — written into <code>.doruk/features/&lt;topic&gt;/</code> (working state, not in the PR diff).",
+        "<b>3 Cross-model spec review</b> — a different model critiques the spec against the real repo.",
+        "<b>4 Plan</b> — implementation plan in the same folder.",
+        "<b>5 Cross-model plan review</b> — a fresh pass on the plan, not the spec.",
+        "<b>6 Simplification pass</b> — deletion-biased reviewer, run when new code adds surface, skipped on contracts/migrations/prompts (with a one-line reason) and a do-not-cut list.",
+        "<b>7 Execute</b> — subagents for independent/parallel work, inline for coupled/sequential.",
+        "<b>8 PR</b> — project's normal ritual; never push from a worktree or PR on uncommitted work.",
+        "<b>9 Review gate, stop for the human</b> — trigger the PR reviewer, present every finding by severity, iterate. Do NOT merge; the human owns the merge." ] },
+      { h: "Stops early only when", items: [
+        "A cross-model review flags a <b>blocking</b> design flaw, tests genuinely won't pass (never fake green), or scope turns out unsettled / multi-feature (kick back to align)." ] },
+      { h: "Honest scope — mine vs composed", items: [
+        "The <b>orchestration is my contribution</b>: the human-gated pipeline and the multi-model quality discipline.",
+        "It <b>composes third-party tools I did not build</b> — the <b>superpowers</b> brainstorm/plan/execute loop and <b>ponytail</b> simplification — plus my own <code>codex-feedback-planning</code> for cross-model review.",
+        "Full accounting: <a href=\"https://github.com/doruktarhan/doruk-ai-harness/blob/main/PROVENANCE.md\">PROVENANCE.md</a>." ] }
+    ],
+    trigger: "Triggers: /ship · \"run the loop\" · \"take this to a PR\" · \"ship it\"  ·  flags: --inline | --subagent | --draft",
+    path: "skills/workflow/ship/SKILL.md"
+  },
+  handoff: {
+    role: "state & memory · the universal organizer",
+    name: "handoff",
+    lead: "Handoff and state-tracking for any repo through a .doruk/ folder, a STATE.md landscape plus each feature's live handoff.md.",
+    sections: [
+      { h: "What it maintains", items: [
+        "<b>STATE.md</b> — the landscape: Active (work with a named next move), Recent/paused (cold threads), Cleanup/backlog (orphan infra + future work).",
+        "Each feature's <b>handoff.md</b> — live coordination: branch, status, what's being done now, task board, don't-touch hints.",
+        "Bootstraps <code>.doruk/</code> on first use." ] },
+      { h: "Explicit paths", items: [
+        "Continuing, picking up, finishing, or abandoning a feature.",
+        "Reach for it from a project wrapper skill that adds commit or PR rituals." ] },
+      { h: "Discipline", items: [
+        "<b>Reference, don't duplicate</b> — each fact has one home. Writes are <b>Markov</b>: current state only, never appended history (git is the audit log)." ] }
+    ],
+    trigger: "Args: continuing &lt;note&gt; | finished &lt;feature&gt; | abandoning &lt;feature&gt; | picking-up &lt;feature&gt;",
+    path: "skills/state-memory/handoff/SKILL.md"
+  },
+  "feature-organize": {
+    role: "state & memory · the on-ship distiller",
+    name: "feature-organize",
+    lead: "Distill a .doruk/ feature folder once work ships: rewrite feature.md into a durable record a future agent can read, and triage the in-flight scratch.",
+    sections: [
+      { h: "Two modes", items: [
+        "<b>Full</b> (default) — rewrites feature.md and triages every aux file once the whole feature closes.",
+        "<b>Narrow</b> — appends one tight note and deletes a single shipped sub-deliverable's scratch mid-feature." ] },
+      { h: "feature.md gets an orientation block", items: [
+        "<code>Status</code>, <code>Next</code> (dropped once shipped), and <code>Key files</code> so a picking-up agent loads context in seconds.",
+        "Below it: what it does, what changed, decisions + WHY, gotchas, follow-ups." ] },
+      { h: "When", items: [
+        "When a feature closes, when a sub-deliverable ships inside a still-active feature, or when a handoff skill reports finished/abandoned. Git history is the deletion backstop." ] }
+    ],
+    trigger: "Args: &lt;feature-folder-name&gt; [shipped | research-only | abandoned | narrow [&lt;sub-path&gt;]]",
+    path: "skills/state-memory/feature-organize/SKILL.md"
+  },
+  wrap: {
+    role: "state & memory · multi-agent session wrap-up",
+    name: "wrap",
+    lead: "Wrap up an agent session in a multi-agent feature folder under .doruk/features/&lt;feature&gt;/&lt;agent&gt;/. Runs consistency checks, then the mechanical end-of-session updates.",
+    sections: [
+      { h: "5 consistency checks", items: [
+        "README ↔ STATE artifact agreement.",
+        "Stale-link scan.",
+        "Cross-folder write detection.",
+        "HANDOFF.md trim.",
+        "decisions.md date convention." ] },
+      { h: "Then mechanical updates", items: [
+        "Folder README \"Last updated\", STATE.md section, decisions / future-work appends." ] },
+      { h: "Composition", items: [
+        "Typically composed with handoff: run <b>wrap first, then handoff</b>." ] }
+    ],
+    trigger: "Triggers: /wrap · \"wrap up\" · \"wrap the folder\" · \"finish session\"",
+    path: "skills/state-memory/wrap/SKILL.md"
+  },
+  "codex-feedback-planning": {
+    role: "delegation · consultant (read-only) · OpenAI Codex",
+    name: "codex-feedback-planning",
+    lead: "Orchestrate the OpenAI Codex CLI as a second-opinion reviewer. Codex acts as a read-only consultant: it analyzes and critiques but makes NO changes to the codebase.",
+    sections: [
+      { h: "Use when", items: [
+        "A plan or implementation strategy was just created for a large refactor or feature.",
+        "The user asks for Codex feedback/review on a plan.",
+        "After exiting plan mode on non-trivial multi-file plans." ] },
+      { h: "Invariant", items: [
+        "Read-only runs use the CLI's <b>plan/approval mode</b>, which enforces no-writes at the CLI level. A prompt instruction alone is not enough.",
+        "This is the role ship's cross-model spec and plan reviews use." ] }
+    ],
+    trigger: "Triggers: \"codex review\" · \"ask codex\" · \"delegate to codex\" · \"get codex feedback\"",
+    path: "skills/delegation/codex-feedback-planning/SKILL.md"
+  },
+  "codex-task-delegator": {
+    role: "delegation · implementer · OpenAI Codex",
+    name: "codex-task-delegator",
+    lead: "Delegate implementation work to OpenAI Codex CLI in an isolated git worktree. Claude prepares context, Codex executes, Claude reviews and merges. Orchestrates the external CLI, it does not reimplement it.",
+    sections: [
+      { h: "Use when", items: [
+        "Claude has failed 2+ attempts on a bug or feature.",
+        "A task needs deep codebase context exceeding the window.",
+        "The user says \"delegate to codex\", \"let codex handle it\", \"codex fix\".",
+        "Not for first attempts or trivial fixes, try it yourself first." ] },
+      { h: "Invariant", items: [
+        "<b>Sandbox the writes</b> — run in workspace-write / yolo mode inside the worktree; the worktree boundary contains the blast radius.",
+        "<b>Close stdin</b> — redirect from /dev/null on the CLI invocation, or it can hang at 0% CPU waiting for end-of-input." ] }
+    ],
+    trigger: "Triggers: \"delegate to codex\" · \"let codex handle it\" · \"hand off to codex\" · \"codex fix\"",
+    path: "skills/delegation/codex-task-delegator/SKILL.md"
+  },
+  "gemini-delegate": {
+    role: "delegation · either role · Google Gemini",
+    name: "gemini-delegate",
+    lead: "Delegate to the Google Gemini CLI in one of two modes. The agent picks the mode from the task; the user can override. Same shape as the Codex delegators, different model.",
+    sections: [
+      { h: "Two modes", items: [
+        "<b>Implementer</b> — worktree + yolo. The driving agent reviews and merges or discards.",
+        "<b>Consultant</b> — read-only via plan mode. Critiques a plan, design, or diff." ] },
+      { h: "Use when", items: [
+        "Claude failed 2+ attempts on the same task.",
+        "A second opinion from a different model is wanted on a plan, implementation, or design.",
+        "After a non-trivial plan is created and review is needed before coding." ] },
+      { h: "Why two providers", items: [
+        "The harness can get a second opinion from a different model, compare approaches across providers, or route by strengths, all through the same isolate → brief → review → merge loop." ] }
+    ],
+    trigger: "Triggers: \"delegate to gemini\" · \"ask gemini\" · \"gemini review\" · \"gemini fix\" · \"let gemini handle it\"",
+    path: "skills/delegation/gemini-delegate/SKILL.md"
+  },
+  "worktree-init": {
+    role: "delegation · isolation primitive",
+    name: "worktree-init",
+    lead: "Create an isolated git worktree for a branch, then do the part `git worktree add` alone misses, so the new tree actually runs instead of erroring on a missing secret or empty environment.",
+    sections: [
+      { h: "What it does beyond git worktree add", items: [
+        "Copies untracked local files that never travel with git: <code>.env</code>, agent / editor config, IDE rules.",
+        "Bootstraps the environment (install deps). Large build artifacts are rebuilt, not copied.",
+        "Worktrees live in a <b>sibling directory outside the repo</b> to avoid nesting one git tree inside another." ] }
+    ],
+    trigger: "user_invocable — the isolation primitive that lets delegates and parallel agents run safely.",
+    path: "skills/delegation/worktree-init/SKILL.md"
+  },
+  "worktree-lifecycle": {
+    role: "delegation · isolation primitive",
+    name: "worktree-lifecycle",
+    lead: "Auto-context for an agent working inside a spawned git worktree. It reads the spawn-written context file (.claude/WORKTREE.md) to learn its branch, its own path, and the main checkout's path, then follows the lifecycle rules.",
+    sections: [
+      { h: "Isolation rules inside a worktree", items: [
+        "Each worktree gets its own slice of shared host resources, its own <b>ports</b>, its own container-stack project name, so siblings don't collide.",
+        "<b>Commit early and often</b> — a worktree can be removed at any time; uncommitted work is gone.",
+        "<b>Never push</b> from a worktree without an explicit ask; don't edit shared/global config from inside one (those are copies).",
+        "<b>Stay in your lane</b> — don't reach into a sibling worktree or check out a different branch here." ] }
+    ],
+    trigger: "Not user-invocable — auto-loaded for an agent already inside a worktree.",
+    path: "skills/delegation/worktree-lifecycle/SKILL.md"
+  }
+};
+
+const back = document.getElementById('modalBack');
+const mRole = document.getElementById('mRole');
+const mName = document.getElementById('mName');
+const mBody = document.getElementById('mBody');
+
+function openSkill(key) {
+  const s = SKILLS[key];
+  if (!s) return;
+  mRole.textContent = s.role;
+  mName.textContent = s.name;
+  let html = '<p class="lead">' + s.lead + '</p>';
+  s.sections.forEach(function(sec) {
+    html += '<h5>' + sec.h + '</h5><ul>';
+    sec.items.forEach(function(it) { html += '<li>' + it + '</li>'; });
+    html += '</ul>';
+  });
+  if (s.trigger) html += '<div class="trigger">' + s.trigger + '</div>';
+  if (s.path) html += '<div class="pathline">' + s.path + '</div>';
+  mBody.innerHTML = html;
+  back.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal() { back.classList.remove('open'); document.body.style.overflow = ''; }
+
+document.querySelectorAll('[data-skill]').forEach(function(el) {
+  el.addEventListener('click', function() { openSkill(el.getAttribute('data-skill')); });
+});
+document.getElementById('mClose').addEventListener('click', closeModal);
+back.addEventListener('click', function(e) { if (e.target === back) closeModal(); });
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>
