@@ -61,6 +61,7 @@ flowchart TB
         SM1["<b>handoff</b><br/><i>STATE.md board + per-feature handoff.md</i>"]
         SM2["<b>feature-organize</b><br/><i>distill feature.md when work ships</i>"]
         SM3["<b>wrap</b><br/><i>end-of-session consistency + updates</i>"]
+        SM4["<b>feature-roadmap</b><br/><i>durable step-spine for multi-step programs</i>"]
     end
 
     subgraph DG["DELEGATION · isolation + cross-model help (skills/delegation/)"]
@@ -84,7 +85,7 @@ flowchart TB
     classDef dg fill:#7c3aed,stroke:#5b21b6,color:#faf5ff;
     class D,AL,SH wf;
     class HITL hitl;
-    class SM1,SM2,SM3 sm;
+    class SM1,SM2,SM3,SM4 sm;
     class DG1,DG2,DG3,DG4,DG5 dg;
 ```
 
@@ -137,6 +138,7 @@ points at the record, the record points at the PR.
 | Skill | Role | What it does |
 |---|---|---|
 | **`handoff`** | orient | Universal `.doruk/` state for any repo. Maintains a `STATE.md` landscape (active / parked / done, plus a backlog) and each feature's live `handoff.md`. Bootstraps `.doruk/` on first use, so a repo needs no manual setup. |
+| **`feature-roadmap`** | plan | Durable step-spine for multi-step programs. When a feature has ordered phases that span sessions (craft→test→refine, a migration, an audit sweep), adds a `roadmap.md` beside `handoff.md` so the map never gets clobbered by Markov rewrites. `handoff.md` shrinks to a two-line pin; `roadmap.md` holds the full step list, a mermaid flow, and a checkable "Done when" per step. |
 | **`feature-organize`** | distill | Post-ship distillation. Turns a feature folder's in-flight scratch into a durable `feature.md` record (decisions + WHY) and triages aux files: keep / archive / delete. Full mode rewrites on close; narrow mode appends one note when a sub-deliverable ships. |
 | **`wrap`** | multi-agent | End-of-session wrap-up for multi-agent feature folders where each agent owns one folder. Runs 5 consistency checks (state agreement, stale links, cross-folder writes, handoff trim, date convention) then the mechanical updates. Composes with `handoff`. |
 
@@ -151,6 +153,8 @@ The substrate all three operate on:
     └── NN-slug/            # one folder per feature
         ├── feature.md      # durable record: orientation block + decisions + WHY
         ├── handoff.md      # live, in-flight handoff
+        ├── roadmap.md      # durable step-spine (multi-step programs only)
+        ├── step-0N-*/      # one folder per step, with artifacts (multi-step only)
         └── archive/        # scratch that was only true during the work (optional)
 ```
 
@@ -201,6 +205,7 @@ flowchart LR
 |---|---|
 | Read `STATE.md` → open the active feature's `handoff.md` → recall relevant `memory/` notes | **`handoff`** (+ recall) |
 | Promote a backlog item in `STATE.md` into a new `features/NN-slug/` folder | **`handoff`** |
+| When a feature becomes a multi-step program: add `roadmap.md` + `step-0N-*/` folders; shrink `handoff.md` to a pin | **`feature-roadmap`** |
 | On ship: distill the live `handoff.md` into the durable `feature.md`, graduate learnings into `MEMORY.md` | **`feature-organize`** |
 | End of session: check the files still agree, trim the board, fix stale links | **`wrap`** |
 
@@ -239,11 +244,18 @@ common failure mode in scripted delegation).
 ## See it in motion — demo app
 
 [`demo-app/`](demo-app/) is a worked example: a **fictional, throwaway** todo-API project that exists
-only to show a real, populated `.doruk/` mid-flight. Read
-[`demo-app/.doruk/STATE.md`](demo-app/.doruk/STATE.md) first (the whole project at a glance), then the
-live [`handoff.md`](demo-app/.doruk/features/01-tag-filtering/handoff.md), then the durable
-[`feature.md`](demo-app/.doruk/features/01-tag-filtering/feature.md). A session ends; the next one
-rebuilds the full mental model in under a minute, with no archaeology through chat logs.
+only to show a real, populated `.doruk/` mid-flight. Two features are live:
+
+- **feature 01 · tag-filtering** — a plain-handoff feature (one `handoff.md` + `feature.md`). Read
+  [`STATE.md`](demo-app/.doruk/STATE.md) first, then the live
+  [`handoff.md`](demo-app/.doruk/features/01-tag-filtering/handoff.md) and the durable
+  [`feature.md`](demo-app/.doruk/features/01-tag-filtering/feature.md).
+- **feature 03 · csv-export** — a `/feature-roadmap` example: a 4-step program with a mermaid spine,
+  step folders, and a pinned `handoff.md`. Read [`roadmap.md`](demo-app/.doruk/features/03-csv-export/roadmap.md)
+  for the map, then [`handoff.md`](demo-app/.doruk/features/03-csv-export/handoff.md) for the pin.
+
+A session ends; the next one rebuilds the full mental model in under a minute, with no archaeology
+through chat logs.
 
 ---
 
@@ -284,7 +296,7 @@ The harness also ships as a Claude Code **plugin**, served from its own single-p
 - The second installs the `doruk-ai-harness` plugin
   ([`.claude-plugin/plugin.json`](.claude-plugin/plugin.json)).
 
-> **All 11 skills load natively.** The skills live under category subdirectories
+> **All 12 skills load natively.** The skills live under category subdirectories
 > (`skills/<block>/<name>/`), and each leaf is declared explicitly in the plugin's
 > [`skills[]` manifest](.claude-plugin/plugin.json). Claude Code reads that manifest, so the plugin
 > route picks up every skill without flattening — no reliance on subdirectory recursion. `install.sh`
@@ -331,7 +343,7 @@ doruk-ai-harness/
 │   └── marketplace.json          # single-plugin marketplace for /plugin
 ├── skills/
 │   ├── workflow/                 # discuss · align · ship  (the headline)
-│   ├── state-memory/             # handoff · feature-organize · wrap
+│   ├── state-memory/             # handoff · feature-roadmap · feature-organize · wrap
 │   └── delegation/               # codex-feedback-planning · codex-task-delegator · gemini-delegate · worktree-init · worktree-lifecycle
 ├── docs/                         # system-and-flow, memory-system, diagram
 ├── demo-app/                     # worked example: a real .doruk/ mid-flight
