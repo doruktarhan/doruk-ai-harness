@@ -1,10 +1,23 @@
 {
   "name": "doruk-ai-harness",
-  "version": "2.0.0",
-  "description": "A coding harness for Claude Code, built as a system. The headline is a from-scratch, human-gated workflow that takes a task discuss -> align -> ship and gates the result through multiple models from different viewpoints, so what ships is always the highest-quality version. Two supporting blocks back it: a committed .doruk/ state & memory layer and cross-model delegation in isolated git worktrees. Bundles 11 skills across three category dirs: workflow (discuss, align, ship), state-memory (handoff, feature-organize, wrap), and delegation (codex-feedback-planning, codex-task-delegator, gemini-delegate, worktree-init, worktree-lifecycle). NOTE: skills live under category subdirectories (skills/<block>/<name>/). If your Claude Code plugin discovery does not recurse those subdirs, run install.sh — it flattens every leaf into ~/.claude/skills/ and is the guaranteed install path.",
+  "version": "2.1.0",
+  "description": "A coding harness for Claude Code, built as a system. The headline is a from-scratch, human-gated workflow that takes a task discuss -> align -> ship and gates the result through multiple models from different viewpoints, so what ships is always the highest-quality version. Two supporting blocks back it: a committed .doruk/ state & memory layer and cross-model delegation in isolated git worktrees. Bundles 11 skills across three category dirs: workflow (discuss, align, ship), state-memory (handoff, feature-organize, wrap), and delegation (codex-feedback-planning, codex-task-delegator, gemini-delegate, worktree-init, worktree-lifecycle). Each skill is declared explicitly in the skills[] manifest below, so /plugin install loads all 11 natively even though they live under category subdirectories (skills/<block>/<name>/). install.sh remains as an offline / non-Claude-Code fallback that flattens every leaf into ~/.claude/skills/.",
   "author": {
     "name": "Doruk Tarhan"
   },
+  "skills": [
+    "./skills/workflow/discuss",
+    "./skills/workflow/align",
+    "./skills/workflow/ship",
+    "./skills/state-memory/handoff",
+    "./skills/state-memory/feature-organize",
+    "./skills/state-memory/wrap",
+    "./skills/delegation/codex-feedback-planning",
+    "./skills/delegation/codex-task-delegator",
+    "./skills/delegation/gemini-delegate",
+    "./skills/delegation/worktree-init",
+    "./skills/delegation/worktree-lifecycle"
+  ],
   "homepage": "https://github.com/doruktarhan/doruk-ai-harness",
   "repository": "https://github.com/doruktarhan/doruk-ai-harness",
   "license": "MIT",

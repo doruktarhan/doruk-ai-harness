@@ -5,13 +5,13 @@
   },
   "metadata": {
     "description": "Doruk's AI coding harness for Claude Code — a from-scratch, human-gated, multi-model workflow (discuss -> align -> ship), backed by a committed .doruk/ state & memory layer and cross-model delegation in isolated git worktrees.",
-    "version": "2.0.0"
+    "version": "2.1.0"
   },
   "plugins": [
     {
       "name": "doruk-ai-harness",
       "source": "./",
-      "description": "11 skills across three category dirs — workflow (discuss, align, ship: the headline pipeline), state-memory (handoff, feature-organize, wrap), and delegation (codex-feedback-planning, codex-task-delegator, gemini-delegate, worktree-init, worktree-lifecycle). Skills are auto-discovered from skills/. Best-effort note: leaves live under category subdirs (skills/<block>/<name>/); if plugin discovery does not recurse them, install.sh is the guaranteed path — it flattens every leaf into ~/.claude/skills/."
+      "description": "11 skills across three category dirs — workflow (discuss, align, ship: the headline pipeline), state-memory (handoff, feature-organize, wrap), and delegation (codex-feedback-planning, codex-task-delegator, gemini-delegate, worktree-init, worktree-lifecycle). Every leaf is declared in the plugin's skills[] manifest, so /plugin install loads all 11 natively even though they live under category subdirs (skills/<block>/<name>/). install.sh stays as an offline / non-Claude-Code fallback that flattens every leaf into ~/.claude/skills/."
     }
   ]
 }

@@ -284,11 +284,12 @@ The harness also ships as a Claude Code **plugin**, served from its own single-p
 - The second installs the `doruk-ai-harness` plugin
   ([`.claude-plugin/plugin.json`](.claude-plugin/plugin.json)).
 
-> **Best-effort caveat.** The skills live under category subdirectories
-> (`skills/<block>/<name>/`). If your version of Claude Code's plugin discovery does **not** recurse
-> into those subdirectories, some skills may not be picked up via the plugin route. The manifests are
-> maintained as best-effort; **`install.sh` (Option 1) is the guaranteed path** because it flattens
-> every leaf into `~/.claude/skills/` directly.
+> **All 11 skills load natively.** The skills live under category subdirectories
+> (`skills/<block>/<name>/`), and each leaf is declared explicitly in the plugin's
+> [`skills[]` manifest](.claude-plugin/plugin.json). Claude Code reads that manifest, so the plugin
+> route picks up every skill without flattening — no reliance on subdirectory recursion. `install.sh`
+> (Option 1) remains an offline / non-Claude-Code fallback that flattens every leaf into
+> `~/.claude/skills/` directly.
 
 ### Option 3 — manual copy
 
