@@ -4,12 +4,12 @@
 #
 # PREFERRED INSTALL: inside Claude Code, use the plugin route (see below).
 # The plugin's .claude-plugin/plugin.json declares every skill in its skills[]
-# manifest, so `/plugin install` loads all 11 natively despite the category
+# manifest, so `/plugin install` loads all 13 natively despite the category
 # subdirs. This script is the FALLBACK for offline use or non-Claude-Code
 # harnesses that read ~/.claude/skills/ directly.
 #
 # The skills are organized into category directories for browsing:
-#   skills/workflow/   skills/state-memory/   skills/delegation/
+#   skills/workflow/   skills/state-memory/   skills/delegation/   skills/understanding/
 # Each LEAF (skills/<block>/<name>/, containing a SKILL.md) is a real skill.
 # Claude Code discovers skills by name, not by category, so this script
 # FLATTENS the categories: every leaf is copied into ~/.claude/skills/<name>/.
@@ -27,7 +27,7 @@
 #   Plugin route (preferred, from inside Claude Code) —
 #       /plugin marketplace add doruktarhan/doruk-ai-harness
 #       /plugin install doruk-ai-harness@doruk-ai-harness
-#     (loads all 11 skills natively via the plugin.json skills[] manifest.)
+#     (loads all 13 skills natively via the plugin.json skills[] manifest.)
 #
 set -euo pipefail
 

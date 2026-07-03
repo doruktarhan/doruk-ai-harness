@@ -5,14 +5,15 @@ than impressive.
 
 ## What's mine
 
-Every skill in [`skills/`](skills/), the architecture in [`docs/`](docs/), the worked example in
+Every skill in [`skills/`](skills/) — except `skills/understanding/explain-diff-html`, which is
+external (see below) — the architecture in [`docs/`](docs/), the worked example in
 [`demo-app/`](demo-app/), and the showcase page in [`web/`](web/) are **my own work** — designed,
-written, and refined by me (Doruk Tarhan) for use with **Claude Code**, Anthropic's CLI. The
-ideas they encode (the four-beat loop, the committed `.doruk/` memory layer, the
-reference-don't-duplicate discipline, the worktree-isolated delegation pattern) are the conventions
-I actually use day to day, distilled into reusable form.
+written, and refined by me (Doruk Tarhan) for use with **Claude Code**, Anthropic's CLI. The ideas
+they encode (the four-beat loop, the committed `.doruk/` memory layer, the reference-don't-duplicate
+discipline, the worktree-isolated delegation pattern) are the conventions I actually use day to day,
+distilled into reusable form.
 
-**Nothing here is copied from anyone else's skill collection or repo.** No code, prompts, or
+**Nothing else here is copied from anyone else's skill collection or repo.** No code, prompts, or
 templates were lifted from third-party projects. Where these skills resemble common practice (git
 worktrees, GitHub issue workflows), that's convergence on standard tooling, not derivation.
 
@@ -61,6 +62,12 @@ built-in equivalents and says so, rather than implying the gate ran. Describing 
 orchestrator I built that composes superpowers and ponytail" is accurate; describing those skills
 as mine would not be.
 
+### External skill
+
+`skills/understanding/explain-diff-html` is external — the prompt is Geoffrey Litt's
+([gist](https://gist.github.com/geoffreylitt/a29df1b5f9865506e8952488eac3d524)), packaged here as a
+Claude Code skill.
+
 ## Tools and platforms referenced
 
 - **Claude Code** (Anthropic) — the host these skills run in. I build *for* it; I didn't build it.
@@ -68,13 +75,13 @@ as mine would not be.
 - **GitHub CLI (`gh`)** — used by the `ship` workflow's PR step. Standard tooling, not mine.
 - **superpowers** (skill collection) and **ponytail** (skill) — third-party Claude Code skills
   that `ship` composes. Not mine; credited above and relied on as optional dependencies.
+- **explain-diff-html** — a Claude Code skill by Geoffrey Litt. Not mine.
 
 ## What I am NOT claiming
 
 - I am **not** claiming authorship of the OpenAI Codex CLI or the Google Gemini CLI.
-- I am **not** claiming any third-party Claude Code skill, plugin, or skill collection as my own —
-  including the **superpowers** collection and the **ponytail** skill that the `ship` workflow
-  composes. `ship` orchestrates them; it does not contain them, and they remain their authors' work.
+- I am **not** claiming any third-party Claude Code skill as my own — including **superpowers**,
+  **ponytail**, and **explain-diff-html** (Geoffrey Litt).
 - I am **not** inventing capabilities or metrics. The skills do exactly what their `SKILL.md`
   files describe — no more.
 

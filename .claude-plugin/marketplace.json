@@ -11,7 +11,7 @@
     {
       "name": "doruk-ai-harness",
       "source": "./",
-      "description": "11 skills across three category dirs — workflow (discuss, align, ship: the headline pipeline), state-memory (handoff, feature-organize, wrap), and delegation (codex-feedback-planning, codex-task-delegator, gemini-delegate, worktree-init, worktree-lifecycle). Every leaf is declared in the plugin's skills[] manifest, so /plugin install loads all 11 natively even though they live under category subdirs (skills/<block>/<name>/). install.sh stays as an offline / non-Claude-Code fallback that flattens every leaf into ~/.claude/skills/."
+      "description": "13 skills across four category dirs — workflow (discuss, align, ship: the headline pipeline), state-memory (handoff, feature-roadmap, feature-organize, wrap), delegation (codex-feedback-planning, codex-task-delegator, gemini-delegate, worktree-init, worktree-lifecycle), and understanding (explain-diff-html, a third-party skill imported verbatim — see PROVENANCE.md). Every leaf is declared in the plugin's skills[] manifest, so /plugin install loads all 13 natively even though they live under category subdirs (skills/<block>/<name>/). install.sh stays as an offline / non-Claude-Code fallback that flattens every leaf into ~/.claude/skills/."
     }
   ]
 }

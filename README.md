@@ -3,12 +3,13 @@
 **A coding harness for Claude Code, built as a system — not a pile of skills.**
 The headline is a from-scratch, human-gated workflow that takes any task `discuss → align → ship`
 and gates the result through multiple models from different viewpoints, so what ships is always the
-highest-quality version. Two supporting blocks back it: a committed `.doruk/` **state & memory**
-layer, and cross-model **delegation** in isolated git worktrees.
+highest-quality version. Three supporting blocks back it: a committed `.doruk/` **state & memory**
+layer, cross-model **delegation** in isolated git worktrees, and **understanding** skills that turn
+an outcome into something a human can actually absorb.
 
 [Workflow](#1-workflow--the-headline-skillsworkflow) · [State & Memory](#2-state--memory-skillsstate-memory) ·
-[Delegation](#3-delegation-skillsdelegation) · [Install](#install) · [Demo](#see-it-in-motion--demo-app) ·
-[Showcase page](web/index.html)
+[Delegation](#3-delegation-skillsdelegation) · [Understanding](#4-understanding-skillsunderstanding) ·
+[Install](#install) · [Demo](#see-it-in-motion--demo-app) · [Showcase page](web/index.html)
 
 ---
 
@@ -89,8 +90,8 @@ flowchart TB
     class DG1,DG2,DG3,DG4,DG5 dg;
 ```
 
-The skills live under three category directories — `skills/workflow/`, `skills/state-memory/`,
-`skills/delegation/` — that exist for browsing. Each leaf is a standard Claude Code skill
+The skills live under four category directories — `skills/workflow/`, `skills/state-memory/`,
+`skills/delegation/`, `skills/understanding/` — that exist for browsing. Each leaf is a standard Claude Code skill
 (`skills/<block>/<name>/SKILL.md`). For the full description see
 [`docs/system-and-flow.md`](docs/system-and-flow.md) (the architecture),
 [`docs/memory-system.md`](docs/memory-system.md) (why the memory layer is shaped the way it is), and
@@ -241,6 +242,21 @@ common failure mode in scripted delegation).
 
 ---
 
+## 4. Understanding (`skills/understanding/`)
+
+Skills whose job is to make an *outcome* legible, not to produce one — turning a diff, a plan, or an
+answer into something a human can actually absorb. In the same spirit as the built-in `simple` /
+`tldr` re-explain knobs, but heavier-weight: instead of compressing text, this category renders a
+standalone, explorable artifact.
+
+> **Honest scope.** `explain-diff-html` is external — credit to Geoffrey Litt. See [`PROVENANCE.md`](PROVENANCE.md).
+
+| Skill | Role | What it does |
+|---|---|---|
+| **`explain-diff-html`** | explain | Turns a code change, diff, branch, or PR into a self-contained HTML page: background, core intuition with toy examples, a walkthrough of the code, and a five-question interactive quiz to check understanding. |
+
+---
+
 ## See it in motion — demo app
 
 [`demo-app/`](demo-app/) is a worked example: a **fictional, throwaway** todo-API project that exists
@@ -296,7 +312,7 @@ The harness also ships as a Claude Code **plugin**, served from its own single-p
 - The second installs the `doruk-ai-harness` plugin
   ([`.claude-plugin/plugin.json`](.claude-plugin/plugin.json)).
 
-> **All 12 skills load natively.** The skills live under category subdirectories
+> **All 13 skills load natively.** The skills live under category subdirectories
 > (`skills/<block>/<name>/`), and each leaf is declared explicitly in the plugin's
 > [`skills[]` manifest](.claude-plugin/plugin.json). Claude Code reads that manifest, so the plugin
 > route picks up every skill without flattening — no reliance on subdirectory recursion. `install.sh`
@@ -344,7 +360,8 @@ doruk-ai-harness/
 ├── skills/
 │   ├── workflow/                 # discuss · align · ship  (the headline)
 │   ├── state-memory/             # handoff · feature-roadmap · feature-organize · wrap
-│   └── delegation/               # codex-feedback-planning · codex-task-delegator · gemini-delegate · worktree-init · worktree-lifecycle
+│   ├── delegation/               # codex-feedback-planning · codex-task-delegator · gemini-delegate · worktree-init · worktree-lifecycle
+│   └── understanding/                   # explain-diff-html (third-party, imported verbatim — see PROVENANCE.md)
 ├── docs/                         # system-and-flow, memory-system, diagram
 ├── demo-app/                     # worked example: a real .doruk/ mid-flight
 └── web/index.html                # interactive showcase (GitHub Pages)
@@ -354,7 +371,8 @@ doruk-ai-harness/
 
 ## License & attribution
 
-MIT — see [`LICENSE`](LICENSE). These are my own skills, built for Claude Code. The delegation skills
-orchestrate external CLIs I did not build (OpenAI Codex, Google Gemini), and `ship` composes
-third-party skills (*superpowers*, *ponytail*) it does not own. Nothing here is copied from anyone
-else. Full honesty on what's mine and what isn't: [`PROVENANCE.md`](PROVENANCE.md).
+MIT — see [`LICENSE`](LICENSE). These are my own skills, built for Claude Code, except
+`skills/understanding/explain-diff-html` ([external, credit Geoffrey Litt](https://gist.github.com/geoffreylitt/a29df1b5f9865506e8952488eac3d524)).
+The delegation skills orchestrate external CLIs I did not build (OpenAI Codex, Google Gemini), and
+`ship` composes third-party skills (*superpowers*, *ponytail*) it does not own. Full honesty on
+what's mine and what isn't: [`PROVENANCE.md`](PROVENANCE.md).
