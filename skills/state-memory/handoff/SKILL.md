@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Handoff and state-tracking for any repo through a .doruk/ folder — a STATE.md landscape plus each feature's live handoff.md. Use when ending a session, changing a feature's status, splitting a feature into tasks, or finishing, abandoning, or picking up a feature; bootstraps .doruk/ on first use. Reach for it from a project wrapper skill that adds commit or PR rituals.
+description: Use when ending a session, changing a feature's status, splitting a feature into tasks, or finishing, abandoning, or picking up a feature — handoff and state-tracking for any repo through a .doruk/ folder (STATE.md landscape + each feature's live handoff.md); bootstraps .doruk/ on first use. Reach for it from a project wrapper skill that adds commit or PR rituals.
 argument-hint: "[continuing <note> | finished <feature> | abandoning <feature> | picking-up <feature>]"
 user_invocable: true
 ---
@@ -36,6 +36,12 @@ Three tiers, no overlap:
 
 ## Rules
 
+- **STATE.md is a dashboard, not a news feed.** It contains exactly four blocks: the
+  `> Updated:` header (plus any standing constraints, e.g. a deadline), the active table,
+  a `## Done` one-liner list, and `## Backlog`. The row IS the news — session detail goes
+  in the feature's `handoff.md`, never in blockquotes above the table.
+- **A STATE row is:** status · next move in ≤2 sentences · pointer to the folder. History,
+  decisions, and shipped detail live in `handoff.md` / `feature.md`.
 - **Markov** — write current state only; never append history. Git history is your audit log.
 - **Update both** the feature's `handoff.md` and its `STATE.md` row, every time; they must agree.
 - **Reference, don't duplicate** — point at `feature.md`; carry live state only.
@@ -47,14 +53,14 @@ Three tiers, no overlap:
   told "Task NN is yours" reads handoff.md (and `task-NN-slug/SPEC.md` if present) and
   executes. Durable plan and decisions graduate to feature.md on ship.
 - **Backlog** — future work with no folder yet lives in `STATE.md` under `## Backlog`;
-  promote it to a feature when picked up.
+  promoting an item to a feature **deletes its backlog line** (one home per piece of work).
 - **Worktree (optional)** — add `> Branch:` / `> Worktree:` to handoff.md; note owner/branch
   in the STATE row.
 - Bump `> Updated:` to today. If `.doruk/` is committed, commit and push after.
 
 ## Bootstrap (no `.doruk/` yet)
 
-Create `STATE.md` (empty table + `## Backlog`) and a `features/` directory.
+Create `STATE.md` (empty table + `## Done` + `## Backlog`) and a `features/` directory.
 
 - **Commit `.doruk/` in personal/solo repos** so state travels across devices.
 - **Gitignore it in shared/team repos** as a private workspace.
@@ -65,9 +71,9 @@ Ask once if which case applies isn't obvious.
 
 | Argument | Action |
 |---|---|
-| (none) / `continuing <note>` | Rewrite the active feature's `handoff.md` to current truth (trim, don't append); update its STATE row. |
+| (none) / `continuing <note>` | Rewrite the active feature's `handoff.md` to current truth (trim, don't append); update its STATE row. Then sweep the table: any *active* row whose next move you can't name as a concrete action, flag to the user for close-out. |
 | `picking-up <feature>` | Read its `feature.md` + `handoff.md` to load context; set yourself as owner in STATE. |
-| `finished <feature>` | Distill the feature's durable record into `feature.md` first (a `/feature-organize`-style step if you have one); then set `handoff.md` Status to done and the STATE row to done. |
+| `finished <feature>` | Distill the feature's durable record into `feature.md` first (a `/feature-organize`-style step if you have one); then set `handoff.md` Status to done and demote the STATE row to a one-liner under `## Done` — same session, no judgment call. |
 | `abandoning <feature>` | Distill / mark the feature abandoned in `feature.md` first; then set the STATE row to abandoned with a one-line why. |
 
 ## Templates
@@ -80,14 +86,18 @@ Ask once if which case applies isn't obvious.
 
 | # | feature | status | next move | owner/branch | folder |
 |---|---------|--------|-----------|--------------|--------|
-| 01 | <slug> | active | <one phrase> | <agent> | `features/01-<slug>/` |
+| 01 | <slug> | active | <≤2 sentences> | <agent> | `features/01-<slug>/` |
+
+## Done (durable record in each folder's feature.md)
+- NN <slug> — <one-line outcome>
 
 ## Backlog
-- <future feature/task> — <one-line intent>   (no folder yet; /handoff promotes it)
+- <future feature/task> — <one-line intent>   (no folder yet; /handoff promotes it, deleting this line)
 ```
 
-Status ∈ active · pickup-ready · parked · done. When the table grows, demote done rows to
-a one-line note; `ls features/` is the full index.
+Status ∈ active · pickup-ready · parked · done. The table holds only non-done rows;
+finished/abandoned features live as one-liners under `## Done`. These four blocks are the
+whole file — no other sections. `ls features/` is the full index.
 
 `features/NN-slug/handoff.md`:
 

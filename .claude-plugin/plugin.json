@@ -1,6 +1,6 @@
 {
   "name": "doruk-ai-harness",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "A coding harness for Claude Code, built as a system. The headline is a from-scratch, human-gated workflow that takes a task discuss -> align -> ship and gates the result through multiple models from different viewpoints, so what ships is always the highest-quality version. Two supporting blocks back it: a committed .doruk/ state & memory layer and cross-model delegation in isolated git worktrees. Bundles 12 skills across three category dirs: workflow (discuss, align, ship), state-memory (handoff, feature-roadmap, feature-organize, wrap), and delegation (codex-feedback-planning, codex-task-delegator, gemini-delegate, worktree-init, worktree-lifecycle). Each skill is declared explicitly in the skills[] manifest below, so /plugin install loads all 12 natively even though they live under category subdirectories (skills/<block>/<name>/). install.sh remains as an offline / non-Claude-Code fallback that flattens every leaf into ~/.claude/skills/.",
   "author": {
     "name": "Doruk Tarhan"
