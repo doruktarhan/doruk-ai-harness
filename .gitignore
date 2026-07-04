@@ -4,3 +4,6 @@ node_modules/
 .env
 __pycache__/
 *.pyc
+
+# Private agent workspace — orientation state, not shipped
+.doruk/
