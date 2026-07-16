@@ -1,7 +1,7 @@
 {
   "name": "doruk-ai-harness",
-  "version": "2.3.0",
-  "description": "A coding harness for Claude Code, built as a system. The headline is a from-scratch, human-gated workflow that takes a task discuss -> align -> ship and gates the result through multiple models from different viewpoints, so what ships is always the highest-quality version. Two supporting blocks back it: a committed .doruk/ state & memory layer and cross-model delegation in isolated git worktrees. Bundles 13 skills across four category dirs: workflow (discuss, align, ship), state-memory (handoff, feature-roadmap, feature-organize, wrap), delegation (codex-feedback-planning, codex-task-delegator, gemini-delegate, worktree-init, worktree-lifecycle), and understanding (explain-diff-html, a third-party skill by Geoffrey Litt, imported verbatim — see PROVENANCE.md). Each skill is declared explicitly in the skills[] manifest below, so /plugin install loads all 13 natively even though they live under category subdirectories (skills/<block>/<name>/). install.sh remains as an offline / non-Claude-Code fallback that flattens every leaf into ~/.claude/skills/.",
+  "version": "2.4.0",
+  "description": "A coding harness for Claude Code, built as a system. The headline is a from-scratch, human-gated workflow that takes a task discuss -> align -> ship and gates the result through multiple models from different viewpoints, so what ships is always the highest-quality version. Two supporting blocks back it: a committed .doruk/ state & memory layer and cross-model delegation in isolated git worktrees. Bundles 14 skills across four category dirs: workflow (discuss, align, ship), state-memory (handoff, feature-roadmap, feature-organize, wrap), delegation (codex-feedback-planning, codex-task-delegator, gemini-delegate, orchestrate, worktree-init, worktree-lifecycle), and understanding (explain-diff-html, a third-party skill by Geoffrey Litt, imported verbatim — see PROVENANCE.md). Each skill is declared explicitly in the skills[] manifest below, so /plugin install loads all 14 natively even though they live under category subdirectories (skills/<block>/<name>/). install.sh remains as an offline / non-Claude-Code fallback that flattens every leaf into ~/.claude/skills/.",
   "author": {
     "name": "Doruk Tarhan"
   },
@@ -16,6 +16,7 @@
     "./skills/delegation/codex-feedback-planning",
     "./skills/delegation/codex-task-delegator",
     "./skills/delegation/gemini-delegate",
+    "./skills/delegation/orchestrate",
     "./skills/delegation/worktree-init",
     "./skills/delegation/worktree-lifecycle",
     "./skills/understanding/explain-diff-html"

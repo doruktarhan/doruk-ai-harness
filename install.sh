@@ -27,7 +27,7 @@
 #   Plugin route (preferred, from inside Claude Code) —
 #       /plugin marketplace add doruktarhan/doruk-ai-harness
 #       /plugin install doruk-ai-harness@doruk-ai-harness
-#     (loads all 13 skills natively via the plugin.json skills[] manifest.)
+#     (loads all 14 skills natively via the plugin.json skills[] manifest.)
 #
 set -euo pipefail
 

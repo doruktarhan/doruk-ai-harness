@@ -72,6 +72,7 @@ flowchart TB
         DG3["<b>codex-feedback-planning</b><br/><i>Codex as read-only plan reviewer</i>"]
         DG4["<b>codex-task-delegator</b><br/><i>Codex implements in a worktree</i>"]
         DG5["<b>gemini-delegate</b><br/><i>Gemini consultant or implementer</i>"]
+        DG6["<b>orchestrate</b><br/><i>which model, when — for subagent spawns</i>"]
     end
 
     D -.->|orients on| SM1
@@ -87,7 +88,7 @@ flowchart TB
     class D,AL,SH wf;
     class HITL hitl;
     class SM1,SM2,SM3,SM4 sm;
-    class DG1,DG2,DG3,DG4,DG5 dg;
+    class DG1,DG2,DG3,DG4,DG5,DG6 dg;
 ```
 
 The skills live under four category directories — `skills/workflow/`, `skills/state-memory/`,
@@ -231,6 +232,7 @@ the diff before any of it reaches the main branch.
 | **`codex-feedback-planning`** | consult | Orchestrates the OpenAI Codex CLI as a **read-only** plan reviewer. A different model reads your plan against the real codebase and tells you what it would break. Makes no changes. |
 | **`codex-task-delegator`** | implement | Orchestrates the OpenAI Codex CLI as an **implementer** in an isolated worktree. Claude briefs it, Codex executes, Claude reviews the diff and merges or discards. |
 | **`gemini-delegate`** | both | Orchestrates the Google Gemini CLI in either role — read-only consultant or sandboxed worktree implementer. Same shape as the Codex skills, a different model. |
+| **`orchestrate`** | reference | Which-agent-when lookup table for a build where every unit of work is delegated to a model-tiered subagent: Fable once up front for the hardest design/plan, Sonnet as the default for all labor, Opus for the tricky logic, Codex for a one-shot review at the end. |
 | **`worktree-init`** | isolate | Creates an isolated git worktree for a branch, copies the untracked local files git won't carry (`.env`, IDE rules, agent config), and bootstraps the environment so the worktree runs immediately. |
 | **`worktree-lifecycle`** | context | Auto-loaded operating manual for an agent running *inside* a worktree: orient, build/test with isolated host resources (own ports, own container-stack name), and clean up without losing uncommitted work. |
 
@@ -312,7 +314,7 @@ The harness also ships as a Claude Code **plugin**, served from its own single-p
 - The second installs the `doruk-ai-harness` plugin
   ([`.claude-plugin/plugin.json`](.claude-plugin/plugin.json)).
 
-> **All 13 skills load natively.** The skills live under category subdirectories
+> **All 14 skills load natively.** The skills live under category subdirectories
 > (`skills/<block>/<name>/`), and each leaf is declared explicitly in the plugin's
 > [`skills[]` manifest](.claude-plugin/plugin.json). Claude Code reads that manifest, so the plugin
 > route picks up every skill without flattening — no reliance on subdirectory recursion. `install.sh`
@@ -360,7 +362,7 @@ doruk-ai-harness/
 ├── skills/
 │   ├── workflow/                 # discuss · align · ship  (the headline)
 │   ├── state-memory/             # handoff · feature-roadmap · feature-organize · wrap
-│   ├── delegation/               # codex-feedback-planning · codex-task-delegator · gemini-delegate · worktree-init · worktree-lifecycle
+│   ├── delegation/               # codex-feedback-planning · codex-task-delegator · gemini-delegate · orchestrate · worktree-init · worktree-lifecycle
 │   └── understanding/                   # explain-diff-html (third-party, imported verbatim — see PROVENANCE.md)
 ├── docs/                         # system-and-flow, memory-system, diagram
 ├── demo-app/                     # worked example: a real .doruk/ mid-flight
