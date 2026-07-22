@@ -7,3 +7,6 @@ __pycache__/
 
 # Private agent workspace — orientation state, not shipped
 .doruk/
+
+# Deep-audit output — documents key locations, hook-bypass recipes, and work context. Never publish.
+deep-audit/
