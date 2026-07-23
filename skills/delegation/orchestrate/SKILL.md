@@ -8,7 +8,7 @@ description: Use when running a multi-step build where you delegate every unit o
 user_invocable: true
 metadata:
   author: doruktarhan
-  version: "2.0.0"
+  version: "2.1.0"
   domain: orchestration
   triggers: orchestrate this, run this end to end with agents, delegate with model tiers, coordinator, delegate, agent team
   role: reference
@@ -86,17 +86,28 @@ everything at Fable cost.
 
 - Default: keep a deep agent ALIVE and message it (SendMessage) for follow-ups, revisions,
   and related next steps, rather than spawning fresh. A 476k-token builder stayed sharp on a
-  1M-token window — depth alone isn't a reason to retire an agent.
+  1M-token window — depth alone isn't a reason to retire an agent. **Window caveat:** that
+  evidence is from a 1M window; subagents in this harness were measured at **~200k windows**
+  (skill-builder incident, 2026-07-22). Confirm the window per environment before leaning on
+  it — never assume 1M.
 - Fresh spawn only for: genuinely unrelated work, or a degraded/off-the-rails agent.
 - The one named mistake to avoid: re-spawning fresh for a REVISION of work an existing agent
   already did — that re-buys context the team already paid for.
+- **Named failure mode — the warm-reuse pull:** after a session where persistence was cheap,
+  the coordinator will *feel* like handing NEW work to a warm agent. That feeling is the bug.
+  Route by the 2×2: follow-ups/revisions/questions → warm agent; new substantial work →
+  fresh agent, regardless of how convenient the warm one looks.
+- **Depth is measured, never guessed.** Executor self-reports use absolute tokens plus
+  assumed window ("context ≈ 100k of ~200k"), never a bare percentage — "55% full" has no
+  denominator and is a model guess. The coordinator treats self-reports as hints only:
+  before ANY reuse-for-a-new-task decision, measure with `depth-gauge.sh <session-dir>`
+  (in this skill's folder), which prints per-agent live context from the last `"usage"`
+  object in each transcript (`~/.claude/projects/<proj>/<session>/subagents/agent-*.jsonl`;
+  live ctx = input_tokens + cache_read_input_tokens + cache_creation_input_tokens).
 - "A deep agent is a good witness and a bad builder": keep asking it questions; stop giving it
-  new projects. Depth is judged by what you fed it, not metered automatically. Escape hatch
-  when unsure: the last `"usage"` object in the agent's transcript
-  (`~/.claude/projects/<proj>/<session>/subagents/agent-*.jsonl`) — live context =
-  input_tokens + cache_read_input_tokens + cache_creation_input_tokens. Thresholds are
-  window-relative (~150k marks "deep" on a 1M window; scouts naturally live and die under
-  ~110k).
+  new projects. Thresholds are window-relative: **~50–60% of the actual window = no new
+  tasks** (that's ~100–120k on a 200k window; the older ~150k "deep" marker only fits a 1M
+  window).
 - Forced retirement only (context pressure, cost, or degradation): the retiring agent's LAST
   task is a successor note — what it built, decisions made, file map, gotchas, dead ends. The
   coordinator's own record is too distilled to reconstruct that. No handoff files otherwise;
