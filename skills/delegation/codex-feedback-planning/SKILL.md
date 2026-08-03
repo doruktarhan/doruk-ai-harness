@@ -50,12 +50,18 @@ Run via the Bash tool:
 
 ```bash
 cd <project-root>
-codex exec --sandbox workspace-write "<constructed-prompt>" < /dev/null
+codex exec -m gpt-5.6-sol -c model_reasoning_effort="medium" --sandbox read-only "<constructed-prompt>" < /dev/null
 ```
 
-**Two flags are load-bearing here:**
+**Model pin is mandatory.** `-m gpt-5.6-sol` — reviews ALWAYS run on Sol, never Luna. A weak reviewer is
+false confidence, so this is never dialled down to a smaller tier; the dial is effort, not model:
+`medium` default, `-c model_reasoning_effort="high"` for very complex or open-ended work. Never inherit
+from `~/.codex/config.toml` — its default is Luna, which would silently run reviews on the labor model.
+Luna is the LABOR model — see `codex-task-delegator`.
 
-1. `--sandbox workspace-write` — replaces the deprecated `--full-auto`. Codex 0.128+ warns on `--full-auto` but the swap is mechanical.
+**Three flags are load-bearing here:**
+
+1. `--sandbox read-only` — this skill is a read-only consultant, so the sandbox enforces the contract rather than relying on the prompt to. (Use `workspace-write` only if a review genuinely needs to run a build.)
 2. `< /dev/null` — closes stdin. From `codex exec --help`: *"If stdin is piped and a prompt is also provided, stdin is appended as a `<stdin>` block."* Without this redirect, Codex will sit forever at "Reading additional input from stdin..." waiting for EOF, especially when run from a non-interactive shell (Bash tool, background task). The trivial probe `codex exec ... "READY"` may complete because the harness closes stdin on exit, but anything that does real work hangs.
 
 If the prompt is long, write it to a temp file and read it back as the argument:
@@ -64,13 +70,13 @@ If the prompt is long, write it to a temp file and read it back as the argument:
 cat > /tmp/codex_prompt.txt <<'PROMPT_EOF'
 <the prompt>
 PROMPT_EOF
-codex exec --sandbox workspace-write "$(cat /tmp/codex_prompt.txt)" < /dev/null
+codex exec -m gpt-5.6-sol -c model_reasoning_effort="medium" --sandbox read-only "$(cat /tmp/codex_prompt.txt)" < /dev/null
 ```
 
 For long-running reviews invoke in the background and poll the output file:
 
 ```bash
-( codex exec --sandbox workspace-write "$(cat /tmp/codex_prompt.txt)" \
+( codex exec -m gpt-5.6-sol -c model_reasoning_effort="medium" --sandbox read-only "$(cat /tmp/codex_prompt.txt)" \
     < /dev/null > /tmp/codex_out.txt 2>&1 ) &
 PID=$!
 for i in $(seq 1 480); do

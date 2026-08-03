@@ -9,9 +9,9 @@ lookup table for which model handles which kind of work.
 Gives a fixed decision table for spawning subagents: **Fable** for the single most complex
 thing up front — designing from scratch, or a whole complicated project's plan/spec — used
 once and skipped entirely for simple tasks; **Opus** for smart work like deep planning and
-tricky logic; **Sonnet** as the default for all labor (scaffolding, edits, data prep,
-browser/QA, fixes); and **Codex** for a one-shot, read-only "what can we improve" review at
-the end. It also pins down the two hard rules that keep an orchestrator honest: always set
+tricky logic; **Codex Luna at max effort** for background labor and **Sonnet** for interactive labor
+(scaffolding, edits, data prep, browser/QA, fixes); and **Codex Sol** for a read-only "what can
+we improve" review at the end — Luna and Sol are never swapped for each other. It also pins down the two hard rules that keep an orchestrator honest: always set
 `model` explicitly on every spawn (never default-inherit, or an orchestrator running as
 Fable silently spawns everything at Fable cost), and default to Sonnet, reaching for Opus
 only when a unit genuinely needs deep reasoning.

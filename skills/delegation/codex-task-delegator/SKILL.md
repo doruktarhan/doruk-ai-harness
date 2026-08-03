@@ -62,10 +62,15 @@ Build the prompt using templates from [references/prompt_templates.md](reference
 
 ```bash
 cd .codex-worktree
-codex exec --sandbox workspace-write "<constructed-prompt>" < /dev/null
+codex exec -m gpt-5.6-luna -c model_reasoning_effort="max" --sandbox workspace-write "<constructed-prompt>" < /dev/null
 ```
 
-**Two flags are load-bearing:**
+**Model pin is mandatory.** `-m gpt-5.6-luna -c model_reasoning_effort="max"` — labor runs on Luna at max
+effort, always. Never inherit from `~/.codex/config.toml`: the default is whatever Doruk last set
+interactively, so an unpinned call silently retiers every delegated task. Sol is the REVIEW model and
+never runs labor here — see `codex-feedback-planning`.
+
+**Three flags are load-bearing:**
 
 1. `--sandbox workspace-write` — replaces the deprecated `--full-auto`. Recent Codex versions warn on `--full-auto`; the swap is mechanical, same behavior.
 2. `< /dev/null` — closes stdin. From `codex exec --help`: *"If stdin is piped and a prompt is also provided, stdin is appended as a `<stdin>` block."* Without this redirect Codex hangs at "Reading additional input from stdin..." waiting for EOF, especially in non-interactive shells (Bash tool, background tasks). Trivial probes may complete (the harness closes stdin on exit) but anything that does real work hangs at 0% CPU.
@@ -76,13 +81,13 @@ For very long prompts, write to a temp file:
 cat > /tmp/codex_task.txt <<'PROMPT_EOF'
 <constructed-prompt>
 PROMPT_EOF
-codex exec --sandbox workspace-write "$(cat /tmp/codex_task.txt)" < /dev/null
+codex exec -m gpt-5.6-luna -c model_reasoning_effort="max" --sandbox workspace-write "$(cat /tmp/codex_task.txt)" < /dev/null
 ```
 
 For long-running implementation runs, invoke in the background and watch:
 
 ```bash
-( codex exec --sandbox workspace-write "$(cat /tmp/codex_task.txt)" \
+( codex exec -m gpt-5.6-luna -c model_reasoning_effort="max" --sandbox workspace-write "$(cat /tmp/codex_task.txt)" \
     < /dev/null > /tmp/codex_out.txt 2>&1 ) &
 PID=$!
 for i in $(seq 1 480); do

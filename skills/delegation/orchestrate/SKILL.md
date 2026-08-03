@@ -8,7 +8,7 @@ description: Use when running a multi-step build where you delegate every unit o
 user_invocable: true
 metadata:
   author: doruktarhan
-  version: "2.1.0"
+  version: "2.2.0"
   domain: orchestration
   triggers: orchestrate this, run this end to end with agents, delegate with model tiers, coordinator, delegate, agent team
   role: reference
@@ -57,8 +57,8 @@ One classification per task, decided once, up front: **open / constrained / mech
 |------------|-------------------------------------|-------|
 | Coordinator| The resident session model         | Fable when available; same rules apply unchanged if the resident is Opus/Sonnet on a throttled week — rules are role-keyed on purpose. |
 | Design     | Fable (open) / Opus (constrained)  | Opus drafts constrained designs; Fable reviews the draft — reviewing costs ~5% of producing. |
-| Executors  | Sonnet, always                     | Own roomier quota pool. Never Haiku — rework costs more than the savings. |
-| Reviewer   | Codex Sol, always                  | Never a smaller Codex tier for reviews — a weak reviewer is false confidence. Effort dial instead: medium default, high for very complex/open work; a foreman's own mid-build reviews may run lower effort (converging, not certifying). Coordinator's final gate stays Sol at medium+. |
+| Executors  | Codex Luna @ max (background) / Sonnet (interactive) | TRIAL from 2026-08-03: Luna at max effort is the default for long-running background labor — separate quota pool from Claude Max, and latency stops mattering when the coordinator moves to another thread. Sonnet for labor you will iterate on mid-flight. Never Haiku — rework costs more than the savings. |
+| Reviewer   | Codex Sol, always (never Luna)                  | Never a smaller Codex tier for reviews — a weak reviewer is false confidence. Effort dial instead: medium default, high for very complex/open work; a foreman's own mid-build reviews may run lower effort (converging, not certifying). Coordinator's final gate stays Sol at medium+. |
 
 Role names describe **spawn rights**, not model tier: a constrained-flow design draft is an
 executor (no spawn rights) that happens to run on Opus per the Design row above — "Sonnet,
@@ -67,6 +67,26 @@ always" is about labor/implementation executors specifically, not every executor
 **Hard rule, unchanged from v1:** always set `model` explicitly on every spawn. Never
 default-inherit — a coordinator running as Fable that forgets the flag silently spawns
 everything at Fable cost.
+
+## Codex executors (Luna) vs Codex reviews (Sol)
+
+Two different models through the same CLI — never the same call. Both pin the model explicitly,
+same reason as the Claude "never default-inherit" rule: `~/.codex/config.toml` holds whatever Doruk
+last set interactively, so an unpinned `codex exec` silently retiers the work.
+
+```bash
+# labor  → codex-task-delegator
+codex exec -m gpt-5.6-luna -c model_reasoning_effort="max" --sandbox workspace-write "<order>" < /dev/null
+# review → codex-feedback-planning   (effort: medium default, high for open/complex)
+codex exec -m gpt-5.6-sol  -c model_reasoning_effort="medium" --sandbox read-only "<order>" < /dev/null
+```
+
+Luna executors are Bash processes, not Claude subagents. Consequences: no `SendMessage`, no
+`depth-gauge.sh`, no `ROLE: EXECUTOR` enforcement — the persistent-agent section below does not
+apply to them. Follow-ups go through `codex exec resume` (weaker than a warm Claude agent), so
+route work you expect to iterate on to Sonnet instead. Launch background runs with
+`run_in_background` and collect the output file. A tmux-backed control layer for real session
+continuity is a known future upgrade, not built.
 
 ## Delegation heuristics
 
@@ -136,5 +156,5 @@ exploration to Sonnet scouts instead of reading broadly yourself. Full orchestra
 
 ## Kept from v1
 
-- Default to Sonnet for labor; browser/QA work → Sonnet.
+- Labor defaults to Luna (background) or Sonnet (interactive); browser/QA work → Sonnet.
 - These are defaults, not a contract — adjust on the road.
