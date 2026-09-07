@@ -67,8 +67,9 @@ codex exec -m gpt-5.6-luna -c model_reasoning_effort="max" --sandbox workspace-w
 
 **Model pin is mandatory.** `-m gpt-5.6-luna -c model_reasoning_effort="max"` — labor runs on Luna at max
 effort, always. Never inherit from `~/.codex/config.toml`: the default is whatever Doruk last set
-interactively, so an unpinned call silently retiers every delegated task. Sol is the REVIEW model and
-never runs labor here — see `codex-feedback-planning`.
+interactively, so an unpinned call silently retiers every delegated task. Sol and Astra are the REVIEW
+models and neither ever runs labor here — see `codex-feedback-planning` (Sol = routine reviews,
+Astra = big architectural changes, backend builds, and complex specs).
 
 **Three flags are load-bearing:**
 

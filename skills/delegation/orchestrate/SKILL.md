@@ -8,7 +8,7 @@ description: Use when running a multi-step build where you delegate every unit o
 user_invocable: true
 metadata:
   author: doruktarhan
-  version: "2.2.0"
+  version: "2.3.0"
   domain: orchestration
   triggers: orchestrate this, run this end to end with agents, delegate with model tiers, coordinator, delegate, agent team
   role: reference
@@ -46,7 +46,7 @@ One classification per task, decided once, up front: **open / constrained / mech
   gate by default.
 - **Escalation**: if a mechanical task's diff outgrows its classification (touches shared or
   risk-bearing code — auth, money, data writes, concurrency, migrations — or the executor
-  reports surprises/failed attempts), upgrade to a Sol diff review before landing.
+  reports surprises/failed attempts), upgrade to a Sol diff review before landing (Astra if it turned out to be architectural or backend-critical).
 - Surface the classification to Doruk as a one-liner at task start ("treating this as:
   constrained — Opus designs, diff gate only") so he can veto cheaply. He may also trigger
   any review manually at any time.
@@ -58,7 +58,7 @@ One classification per task, decided once, up front: **open / constrained / mech
 | Coordinator| The resident session model         | Fable when available; same rules apply unchanged if the resident is Opus/Sonnet on a throttled week — rules are role-keyed on purpose. |
 | Design     | Fable (open) / Opus (constrained)  | Opus drafts constrained designs; Fable reviews the draft — reviewing costs ~5% of producing. |
 | Executors  | Codex Luna @ max (background) / Sonnet (interactive) | TRIAL from 2026-08-03: Luna at max effort is the default for long-running background labor — separate quota pool from Claude Max, and latency stops mattering when the coordinator moves to another thread. Sonnet for labor you will iterate on mid-flight. Never Haiku — rework costs more than the savings. |
-| Reviewer   | Codex Sol, always (never Luna)                  | Never a smaller Codex tier for reviews — a weak reviewer is false confidence. Effort dial instead: medium default, high for very complex/open work; a foreman's own mid-build reviews may run lower effort (converging, not certifying). Coordinator's final gate stays Sol at medium+. |
+| Reviewer   | Codex Sol (routine) / Codex Astra (heavyweight) | Never Luna, never a smaller Codex tier — a weak reviewer is false confidence. Sol is the default: medium effort, high for very complex/open work; a foreman's own mid-build reviews may run lower effort (converging, not certifying). Coordinator's final gate stays Sol at medium+. **Escalate to Astra at medium effort** (high only for the hardest open specs) when the artifact is a big architectural change, a backend build (services, data layers, migrations, auth, concurrency), or a complex spec. Astra on a routine diff is money burned. |
 
 Role names describe **spawn rights**, not model tier: a constrained-flow design draft is an
 executor (no spawn rights) that happens to run on Opus per the Design row above — "Sonnet,
@@ -68,7 +68,7 @@ always" is about labor/implementation executors specifically, not every executor
 default-inherit — a coordinator running as Fable that forgets the flag silently spawns
 everything at Fable cost.
 
-## Codex executors (Luna) vs Codex reviews (Sol)
+## Codex executors (Luna) vs Codex reviews (Sol / Astra)
 
 Two different models through the same CLI — never the same call. Both pin the model explicitly,
 same reason as the Claude "never default-inherit" rule: `~/.codex/config.toml` holds whatever Doruk
@@ -79,6 +79,8 @@ last set interactively, so an unpinned `codex exec` silently retiers the work.
 codex exec -m gpt-5.6-luna -c model_reasoning_effort="max" --sandbox workspace-write "<order>" < /dev/null
 # review → codex-feedback-planning   (effort: medium default, high for open/complex)
 codex exec -m gpt-5.6-sol  -c model_reasoning_effort="medium" --sandbox read-only "<order>" < /dev/null
+# heavyweight review → architecture / backend builds / complex specs only (codex-cli 0.153.4+)
+codex exec -m gpt-6-astra  -c model_reasoning_effort="medium" --sandbox read-only "<order>" < /dev/null
 ```
 
 Luna executors are Bash processes, not Claude subagents. Consequences: no `SendMessage`, no
@@ -93,8 +95,9 @@ continuity is a known future upgrade, not built.
 - Delegate by expected context-tonnage, not task importance: needing >~2–3 files read, or not
   knowing where the answer lives → fan out Sonnet scouts. A targeted lookup you already know
   the location of → do it directly (delegation overhead costs more than the lookup).
-- Exception the coordinator keeps: code it is making an architectural bet on — read the
-  load-bearing files yourself; secondhand summaries lose exactly what the design hinges on.
+- Exception the coordinator keeps: code it is making an architectural bet on, and any
+  instructions, skill files, or specs it will itself act on — read those yourself;
+  secondhand summaries lose exactly what the design hinges on.
 - Task-size flip: if the new work itself looks >~150k tokens of reading+writing, that alone
   says "fresh dedicated agent," regardless of any existing agent's state.
 - Brief big work orders BY REFERENCE (a frozen spec file in the feature folder: "Read FIRST:
@@ -137,12 +140,14 @@ continuity is a known future upgrade, not built.
 ## Review gates
 
 - Gates fire on frozen artifacts only (a spec, a final diff), never on intermediate states.
-- **open** → Sol adversarial spec review BEFORE implementation + Sol diff review before landing.
-- **constrained** → Sol diff review before landing. **mechanical** → none by default (see
-  escalation rule above).
+- **open** → adversarial spec review BEFORE implementation + diff review before landing. Both run on
+  **Astra** when the work is a big architectural change, a backend build, or a complex
+  spec — which is most open work; Sol otherwise.
+- **constrained** → Sol diff review before landing, escalated to Astra if the change turns out to be
+  architectural or backend-critical. **mechanical** → none by default (see escalation rule above).
 - The coordinator owns triggering each gate, evaluating the review report, and the land
-  decision — that ownership is never delegated, never skipped; Codex Sol performs the
-  artifact reviews themselves.
+  decision — that ownership is never delegated, never skipped; Codex Sol (or Astra, when escalated)
+  performs the artifact reviews themselves.
 - Current mechanism: existing codex skills / codex CLI. Migration to
   `openai/codex-plugin-cc` (`/codex:review`, `/codex:adversarial-review`) is a future step —
   gate language above is written mechanism-neutral ("run a Sol diff review") so that migration

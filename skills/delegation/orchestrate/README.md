@@ -11,7 +11,9 @@ thing up front — designing from scratch, or a whole complicated project's plan
 once and skipped entirely for simple tasks; **Opus** for smart work like deep planning and
 tricky logic; **Codex Luna at max effort** for background labor and **Sonnet** for interactive labor
 (scaffolding, edits, data prep, browser/QA, fixes); and **Codex Sol** for a read-only "what can
-we improve" review at the end — Luna and Sol are never swapped for each other. It also pins down the two hard rules that keep an orchestrator honest: always set
+we improve" review at the end, escalating to **Codex Astra** when the thing under review is a big
+architectural change, a backend build, or a complex spec — labor and review models are never swapped
+for each other. It also pins down the two hard rules that keep an orchestrator honest: always set
 `model` explicitly on every spawn (never default-inherit, or an orchestrator running as
 Fable silently spawns everything at Fable cost), and default to Sonnet, reaching for Opus
 only when a unit genuinely needs deep reasoning.

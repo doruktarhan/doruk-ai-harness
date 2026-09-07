@@ -53,11 +53,31 @@ cd <project-root>
 codex exec -m gpt-5.6-sol -c model_reasoning_effort="medium" --sandbox read-only "<constructed-prompt>" < /dev/null
 ```
 
-**Model pin is mandatory.** `-m gpt-5.6-sol` — reviews ALWAYS run on Sol, never Luna. A weak reviewer is
-false confidence, so this is never dialled down to a smaller tier; the dial is effort, not model:
-`medium` default, `-c model_reasoning_effort="high"` for very complex or open-ended work. Never inherit
-from `~/.codex/config.toml` — its default is Luna, which would silently run reviews on the labor model.
-Luna is the LABOR model — see `codex-task-delegator`.
+**Model pin is mandatory.** `-m gpt-5.6-sol` — routine reviews run on Sol (default), never Luna, and never a
+smaller tier (heavyweight work escalates UP to Astra, see below). A weak
+reviewer is false confidence, so this is never dialled down to a smaller tier; the dial is effort, not
+model: `medium` default, `-c model_reasoning_effort="high"` for very complex or open-ended work. Never
+inherit from `~/.codex/config.toml` — its default is Luna, which would silently run reviews on the labor
+model. Luna is the LABOR model — see `codex-task-delegator`.
+
+**Astra — the heavyweight reviewer.** `-m gpt-6-astra` (requires codex-cli 0.153.4+; older CLIs
+reject it with "requires a newer version of Codex"). Astra is a far more capable and more expensive
+reviewer than Sol. Escalate to it when the artifact under review is one of:
+
+- **big architectural changes** — new subsystem, cross-cutting refactor, a frozen API/interface contract
+- **backend builds** — services, data layers, migrations, auth, concurrency, anything with money or
+  persistence in the blast radius
+- **complex specs** — an open-classification spec review before implementation
+
+Everything else — ordinary code review, a routine diff gate, a small or constrained change — stays on
+Sol. Astra on a routine diff is money burned, not safety bought. Astra reviews default to `model_reasoning_effort="medium"` —
+the escalation is the model, not the dial; go to `high` only for the hardest open specs:
+
+```bash
+codex exec -m gpt-6-astra -c model_reasoning_effort="medium" --sandbox read-only "<constructed-prompt>" < /dev/null
+```
+
+Astra is a REVIEW model only — it never runs labor. Labor stays on Luna, see `codex-task-delegator`.
 
 **Three flags are load-bearing here:**
 
