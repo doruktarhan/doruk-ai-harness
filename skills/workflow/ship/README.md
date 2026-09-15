@@ -61,7 +61,6 @@ pieces are wired into one gated pipeline, is what I actually built.
 | Beat | Driven through | Built by | Honest description |
 |---|---|---|---|
 | Brainstorm / plan-writing / execution | the **superpowers** skill collection | a third party (not me) | I sequence and gate these skills; I did not write them. |
-| Simplification / over-engineering review | the **ponytail** skill | a third party (not me) | I decide when to run it and feed it a do-not-cut list; the simplifier itself isn't mine. |
 | Cross-model spec & plan review | my own `codex-feedback-planning` skill | orchestration mine; **Codex CLI/model OpenAI's** | My skill drives the OpenAI Codex CLI read-only. I did not build Codex or the model behind it. |
 
 If a composed skill isn't installed in your environment, `/ship` says so and falls back to the
@@ -74,7 +73,7 @@ pretending a gate ran. See [`PROVENANCE.md`](../../../PROVENANCE.md) for the ful
    multi-feature scope back to alignment.
 2. Drop this `ship/` folder into `~/.claude/skills/` (or a project's `.claude/skills/`).
 3. For the full quality gates, also install the composed pieces: the superpowers collection,
-   the ponytail skill, and my `codex-feedback-planning` skill (which needs the OpenAI Codex CLI:
+   and my `codex-feedback-planning` skill (which needs the OpenAI Codex CLI:
    `npm i -g @openai/codex && codex auth`). Without them, `/ship` still runs — it just reviews
    manually where a gate would have run.
 4. Say **`/ship <topic>`**, **"run the loop"**, or **"take this to a PR"**. Force the execution

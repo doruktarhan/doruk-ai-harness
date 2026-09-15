@@ -85,7 +85,7 @@ order, the human gates, the always-review-quality discipline) is the contributio
 4. **Plan** — write the implementation plan into the same folder.
 5. **Cross-model plan review** — a *fresh* pass on the plan (not the spec). Spec-level and
    plan-level blind spots differ, so both get an independent viewpoint.
-6. **Simplification pass** — a deletion-biased complexity reviewer (the third-party **ponytail** skill) runs on the plan **when**
+6. **Simplification pass** — a deletion-biased complexity review runs inline on the plan **when**
    the work adds new code with defensive or speculative surface (new reports, tool
    libraries, services, components), and is **skipped** (with a one-line reason) on small
    already-reviewed diffs or on contracts / migrations / prompts / persona where such a
@@ -114,7 +114,7 @@ step by step — minimal check-ins were the ask.
 > can come from different models. The point is not redundancy for its own sake — spec-level,
 > plan-level, and diff-level blind spots are genuinely different, and a model that did not
 > write the work catches what the author cannot see. The composed pieces are third-party and
-> not the author's work — the **superpowers** build-loop scaffold and **ponytail** simplification,
+> not the author's work — the **superpowers** build-loop scaffold,
 > credited in the repo's README and PROVENANCE; the orchestration is.
 
 ---

@@ -23,8 +23,7 @@ If the scope isn't settled yet, stop and tell the user to run `/align` first.
 
 > This skill **composes external pieces** rather than reimplementing them. The
 > brainstorming / plan-writing / execution beats are driven through the third-party
-> **superpowers** skill collection; the simplification pass is driven through the
-> third-party **ponytail** skill; cross-model plan review is driven through the
+> **superpowers** skill collection; cross-model plan review is driven through the
 > author's own `codex-feedback-planning` skill (which itself orchestrates the OpenAI
 > Codex CLI). The *orchestration* — the order, the human gates, the always-review-quality
 > discipline — is the contribution here. The composed tools are credited in the README and
@@ -47,17 +46,18 @@ If the scope isn't settled yet, stop and tell the user to run `/align` first.
 5. **Cross-model plan review** — a *fresh* `codex-feedback-planning` pass on the plan (not
    the spec). Fold in the feedback. This is the second independent viewpoint: spec-level and
    plan-level blind spots are different, so review both.
-6. **Simplification pass (ponytail)** — decide whether the plan deserves a complexity/
-   simplification review, then run the ponytail skill on it. Judge by work-type:
+6. **Simplification pass** — decide whether the plan deserves a deletion-biased
+   complexity review, then do it inline (no third-party skill): for each planned piece ask
+   whether it needs to exist, whether something in the repo or stdlib already covers it, and
+   whether it can be smaller. Judge by work-type:
    - **Run it** when the work adds new code with defensive or speculative surface (new
      reports, tool libraries, services, components) — that's where over-engineering hides.
    - **Skip it** (with a one-line reason) when it's a small, already-reviewed diff, or when
      it touches contracts / migrations / prompts / persona, where a deletion-biased reviewer
      misfires.
-   Run inline by default: the simplifier needs the locked design **plus an explicit
-   do-not-cut list** (correctness fixes, escaping, input validation, security, schema/
-   contract bumps) so it cuts safely. Spawn a subagent only for a large plan, and hand it
-   that same context. Fold accepted cuts back into the plan, then continue.
+   Keep an explicit do-not-cut list (correctness fixes, escaping, input validation,
+   security, schema/contract bumps) so cuts stay safe. Fold accepted cuts back into the
+   plan, then continue.
 7. **Execute** — pick the execution mode by task shape and say which + why in one line:
    - independent / parallelizable / large surface → subagent-driven execution (one
      subagent per independent task).

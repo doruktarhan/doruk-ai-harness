@@ -121,7 +121,7 @@ time execution starts, three independent viewpoints — quality, complexity, sim
 already shaped the plan.
 
 `ship` is an **orchestrator**: it composes third-party pieces honestly (the *superpowers* collection
-for brainstorming / plan-writing / execution, the *ponytail* skill for simplification) plus the
+for brainstorming / plan-writing / execution) plus the
 author's own `codex-feedback-planning` for cross-model review. The orchestration and the
 always-ship-quality, human-gated pipeline are the contribution here; the composed tools are credited
 and are **not** the author's work. If a composed skill isn't installed, `ship` says so and falls back
@@ -343,7 +343,7 @@ the leaf folder into `~/.claude/skills/` is all that's required.
 > `npm i -g @google/gemini-cli`. The skills check for these and tell you if they're missing.
 >
 > **Composed skills (`ship`).** For `ship`'s full quality gates, also install the third-party
-> *superpowers* collection and *ponytail* skill. Without them `ship` still runs; it falls back to
+> *superpowers* collection. Without them `ship` still runs; it falls back to
 > reviewing manually where a gate would have run.
 
 ---
@@ -376,5 +376,5 @@ doruk-ai-harness/
 MIT — see [`LICENSE`](LICENSE). These are my own skills, built for Claude Code, except
 `skills/understanding/explain-diff-html` ([external, credit Geoffrey Litt](https://gist.github.com/geoffreylitt/a29df1b5f9865506e8952488eac3d524)).
 The delegation skills orchestrate external CLIs I did not build (OpenAI Codex, Google Gemini), and
-`ship` composes third-party skills (*superpowers*, *ponytail*) it does not own. Full honesty on
+`ship` composes third-party skills (*superpowers*) it does not own. Full honesty on
 what's mine and what isn't: [`PROVENANCE.md`](PROVENANCE.md).
