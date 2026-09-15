@@ -10,16 +10,24 @@ page in [`web/`](web/) are my own work, designed and written by me (Doruk Tarhan
 
 ## What's not mine
 
-- **`codex-feedback-planning`** and **`codex-task-delegator`** orchestrate the **OpenAI Codex CLI**.
-  The skill (prompts, invocation, worktree sandboxing, diff review flow) is mine; Codex itself isn't.
+- **`codex`** (merged from the former `codex-feedback-planning` and `codex-task-delegator`,
+  now kept in `skills/legacy/` for reference) orchestrates the **OpenAI Codex CLI**. The
+  skill (prompts, invocation, worktree sandboxing, diff review flow) is mine; Codex itself
+  isn't.
 - **`gemini-delegate`** orchestrates the **Google Gemini CLI** the same way — mine is the skill, not
   the CLI.
-- **`ship`** composes the third-party **superpowers** collection (brainstorm/plan/execute loop),
-  plus my own `codex-feedback-planning` for cross-model review.
-  The orchestration and the human-gated pipeline are mine; superpowers is not.
 - **`skills/understanding/explain-diff-html`** is imported verbatim from a
   [gist by Geoffrey Litt](https://gist.github.com/geoffreylitt/a29df1b5f9865506e8952488eac3d524) —
   packaged as a Claude Code skill, prompt unchanged.
+- **`skills/meta/lean-instructions`** distills OpenAI's September 2026 blog post *"Rethinking
+  skills and prompts for GPT-6 Astra"* into a set of rules and an audit procedure for this
+  repo (summarized honestly in its `references/astra-2026-09.md`). The source guidance is
+  OpenAI's; the rules as written and the audit procedure are mine.
+- **`skills/legacy/ship`** (kept for reference, not installed) composed the third-party
+  **superpowers** collection (brainstorm/plan/execute loop) with my own
+  `codex-feedback-planning` for cross-model review. That superpowers dependency is now
+  disabled and `ship` is superseded by planning and delegating directly through
+  `orchestrate` — see `skills/legacy/README.md`.
 
 ## License
 

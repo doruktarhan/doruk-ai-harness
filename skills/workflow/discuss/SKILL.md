@@ -1,24 +1,21 @@
 ---
 name: discuss
-description: Loose, opinionated pre-brainstorm DISCUSS mode — the first beat of discuss → align → ship. Orients on any handoff/feature context, riffs across short turns to find the SHAPE of a task, holds off on specs/plans/code, and hands to align only when the user says so. Use at the very start of a task, when exploring an idea before committing to a design, or when the user says "let's discuss", "let's kick this around", or "riff with me".
+description: Loose, opinionated pre-build DISCUSS mode: riff in short turns to find a task's shape, holding off specs, plans, or code, with an optional structured-question round. Use when starting a task or exploring an idea.
 argument-hint: "[optional topic or thread to pick up]"
 user_invocable: true
 ---
 
 # Discuss — divergent exploration before locking a design
 
-This is **DISCUSS mode**: a loose, divergent, thinking-out-loud phase that comes BEFORE the
-formal `align` grilling. It is the OPPOSITE of one-question-at-a-time interrogation.
+A loose, divergent, thinking-out-loud phase for finding the shape of a task before anything
+gets built.
 
-Discuss is the first of three beats:
+The flow: discuss openly first; once the shape converges enough, you may optionally offer a
+short structured-question round to pin down the last few decisions; then the user decides
+what happens next — usually building it, or invoking `orchestrate` for larger work.
 
-1. **discuss** (this skill) — open, divergent exploration to find the *shape* of the thing.
-2. **align** — one-question-at-a-time grilling that converges on a shared design.
-3. **ship** — drive the aligned spec to a review-ready change.
-
-While in discuss mode, **do not** converge, write a spec or plan, write code, or invoke
-`align`, `ship`, a plan-writing skill, or a structured brainstorming skill. Stay here and
-think WITH the user.
+Don't converge, write a spec or plan, or write code, except inside the optional
+structured-question round below.
 
 ## 1. Orient — briefly, not as a ceremony
 
@@ -44,19 +41,33 @@ a gate.
 
 ## 3. Hold the gate
 
-- Do NOT produce a design doc, spec, plan, or implementation. No premature convergence.
-- If the user starts drifting toward "just build it," remind them this is still discuss, and
-  offer to move to `align` once the shape feels decided.
+- No design doc, spec, plan, or implementation.
+- If the user starts drifting toward "just build it," that's fine — discuss can end there.
+  Just don't jump ahead on your own.
 
-## 4. Hand off to align only when the user explicitly says so
+## 4. Optional: a structured-question round
 
-- Stay in discuss until the user signals the move ("let's align", "ok grill me",
-  "lock it in").
-- When they do: write a tight 4–8 line summary of what was landed on — the decided shape,
-  the open questions still worth grilling, any constraints — then invoke the `align` skill
-  with that summary as its starting context, so the user does not have to repeat themselves.
-- If the `align` skill is not available in this environment, instead begin a focused
-  one-question-at-a-time alignment yourself, seeded with that same summary.
+Once the conversation has genuinely converged and only a handful of concrete decisions
+remain, you may offer, in one line, to ask them as structured questions via Claude Code's
+AskUserQuestion tool (multiple-choice, answered in the TUI). Offer this only when it
+naturally fits — never every turn, never as your default reply.
+
+If the user says yes:
+- Ask 2–4 questions in a single AskUserQuestion call, no more, each with your recommended
+  option first.
+- Keep the spirit of one clear question with a recommended answer, just packaged as one
+  batch instead of back-and-forth grilling.
+- After they answer, summarize the decisions in a few lines, then drop back into normal
+  discussion — don't treat the answers as a trigger to start building or planning.
+
+## 5. What happens next
+
+Discuss doesn't hand off to a fixed next skill. When the shape feels settled, say so plainly
+and let the user decide:
+
+- For most things, they'll just want it built directly.
+- For a big, multi-step build they want delegated across subagents, point them at
+  `orchestrate`.
 - If the repo uses a session-handoff ritual and the work is about to span sessions, remind
   the user to run their handoff step first.
 

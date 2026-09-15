@@ -1,14 +1,17 @@
 # doruk-ai-harness
 
 **A coding harness for Claude Code, built as a system — not a pile of skills.**
-The headline is a from-scratch, human-gated workflow that takes any task `discuss → align → ship`
-and gates the result through multiple models from different viewpoints, so what ships is always the
+Work starts in `discuss`: loose, opinionated exploration to find a task's shape, with an optional
+structured-question round to pin down what's left. From there you build directly, or hand a
+multi-step build to `orchestrate`, which delegates every unit of work to model-tiered subagents and
+gates the design and the final diff with a genuinely different model, so what lands is always the
 highest-quality version. Three supporting blocks back it: a committed `.doruk/` **state & memory**
 layer, cross-model **delegation** in isolated git worktrees, and **understanding** skills that turn
 an outcome into something a human can actually absorb.
 
 [Workflow](#1-workflow--the-headline-skillsworkflow) · [State & Memory](#2-state--memory-skillsstate-memory) ·
 [Delegation](#3-delegation-skillsdelegation) · [Understanding](#4-understanding-skillsunderstanding) ·
+[Meta](#5-meta-skillsmeta) ·
 [Install](#install) · [Demo](#see-it-in-motion--demo-app) · [Showcase page](web/index.html)
 
 ---
@@ -23,17 +26,29 @@ I then had to reverse-engineer and quality-check by hand. Second, **the context 
 memory**: it evaporates on compaction or a new session, it doesn't travel across machines, and it
 rots silently as the model paraphrases its own earlier notes.
 
-So I built a system instead of collecting prompts. The **workflow** is the spine: a task moves from
-loose exploration to an agreed design to a shipped PR, with a human in the loop at every real
-decision and the quality, complexity, and simplification reviewed by a *genuinely different* model at
-each gate. The point is structural: the version that ships is the reviewed one by construction, not
-because I remembered to ask for a review afterward.
+So I built a system instead of collecting prompts. The **workflow** is the spine: a task starts in
+loose discussion, then either gets built directly or handed to `orchestrate` for a delegated,
+model-tiered build, with a human in the loop at every real decision and, on a delegated build, the
+quality, complexity, and simplification reviewed by a *genuinely different* model at each gate. The
+point is structural: the version that lands is the reviewed one by construction, not because I
+remembered to ask for a review afterward.
 
 Underneath that, two supporting blocks do the unglamorous work. **State & memory** puts the memory on
 disk: one committed `.doruk/` folder is the durable, indexed source of truth, and the context window
 is treated as disposable scratch. **Delegation** lets me hand a unit of work to a *different* model
 (OpenAI Codex, Google Gemini) inside an isolated git worktree, review its diff, and merge it or throw
 it away with zero risk to the main branch.
+
+### Why v3: trimmed for Fable-class models
+
+OpenAI's September 2026 post *"Rethinking skills and prompts for GPT-6 Astra"* argues that
+scaffolding built to babysit a weaker model — broad triggers, mandatory pre-reads, CAUTION/NEVER
+language — slows a frontier model down: it competes for triggers, gets read unneeded, and makes an
+aligned model stop to ask instead of just doing the work. v3 applies that here: `align` folded into
+`discuss` as an optional round, the two Codex skills merged into `codex`, and `ship`'s scripted
+pipeline — built for pre-Fable models, dependent on the now-disabled `superpowers` plugin — is
+superseded by `orchestrate`. Rules live in [`skills/meta/lean-instructions`](skills/meta/lean-instructions);
+superseded skills stay in [`skills/legacy/`](skills/legacy/README.md).
 
 ---
 
@@ -45,17 +60,12 @@ committed `.doruk/` state folder. The diagram below is the canonical view (also 
 
 ```mermaid
 flowchart TB
-    subgraph WF["WORKFLOW · from scratch → review-ready PR (skills/workflow/)"]
-        direction LR
-        D["<b>discuss</b><br/><i>loose, divergent exploration<br/>before committing to a design</i>"]
-        AL["<b>align</b><br/><i>one-question-at-a-time grilling<br/>that converges on a shared design</i>"]
-        SH["<b>ship</b><br/><i>drive the aligned spec to a<br/>review-ready PR, quality gates built in</i>"]
-        D ==>|"shape found"| AL
-        AL ==>|"design agreed"| SH
+    subgraph WF["WORKFLOW · find the shape first (skills/workflow/)"]
+        D["<b>discuss</b><br/><i>loose, opinionated exploration,<br/>optional structured-question round</i>"]
     end
 
-    HITL["human in the loop at EVERY decision  ·  code quality / complexity / simplification reviewed by MULTIPLE models from different viewpoints"]
-    WF -.-> HITL
+    BUILD["build directly, or hand off to ORCHESTRATE<br/>model-tiered build + design/diff review gated by a different model"]
+    D ==>|"shape found"| BUILD
 
     subgraph SM["STATE &amp; MEMORY · the committed .doruk/ layer (skills/state-memory/)"]
         direction TB
@@ -69,31 +79,29 @@ flowchart TB
         direction TB
         DG1["<b>worktree-init</b><br/><i>create isolated worktree, copy local files</i>"]
         DG2["<b>worktree-lifecycle</b><br/><i>build / test / cleanup inside a worktree</i>"]
-        DG3["<b>codex-feedback-planning</b><br/><i>Codex as read-only plan reviewer</i>"]
-        DG4["<b>codex-task-delegator</b><br/><i>Codex implements in a worktree</i>"]
-        DG5["<b>gemini-delegate</b><br/><i>Gemini consultant or implementer</i>"]
-        DG6["<b>orchestrate</b><br/><i>which model, when — for subagent spawns</i>"]
+        DG3["<b>codex</b><br/><i>OpenAI Codex — consultant or implementer</i>"]
+        DG4["<b>gemini-delegate</b><br/><i>Google Gemini — consultant or implementer</i>"]
+        DG5["<b>orchestrate</b><br/><i>which model, when — for subagent spawns</i>"]
     end
 
     D -.->|orients on| SM1
-    SH ==>|runs in| DG
-    SH ==>|consults| DG3
-    SH ==>|writes back to| SM
-    SH ==>|review gate| DG5
+    BUILD ==>|runs in| DG
+    BUILD -.->|writes back to| SM
 
     classDef wf fill:#1d4ed8,stroke:#1e3a8a,color:#eff6ff;
     classDef hitl fill:#b45309,stroke:#92400e,color:#fffbeb;
     classDef sm fill:#0e7490,stroke:#155e75,color:#f0fdff;
     classDef dg fill:#7c3aed,stroke:#5b21b6,color:#faf5ff;
-    class D,AL,SH wf;
-    class HITL hitl;
+    class D wf;
+    class BUILD hitl;
     class SM1,SM2,SM3,SM4 sm;
-    class DG1,DG2,DG3,DG4,DG5,DG6 dg;
+    class DG1,DG2,DG3,DG4,DG5 dg;
 ```
 
-The skills live under four category directories — `skills/workflow/`, `skills/state-memory/`,
-`skills/delegation/`, `skills/understanding/` — that exist for browsing. Each leaf is a standard Claude Code skill
-(`skills/<block>/<name>/SKILL.md`). For the full description see
+The skills live under five category directories — `skills/workflow/`, `skills/state-memory/`,
+`skills/delegation/`, `skills/understanding/`, `skills/meta/` — that exist for browsing (plus
+`skills/legacy/`, kept for reference and not installed — see [§ Why v3](#why-v3-trimmed-for-fable-class-models)).
+Each leaf is a standard Claude Code skill (`skills/<block>/<name>/SKILL.md`). For the full description see
 [`docs/system-and-flow.md`](docs/system-and-flow.md) (the architecture),
 [`docs/memory-system.md`](docs/memory-system.md) (why the memory layer is shaped the way it is), and
 [`docs/diagram.md`](docs/diagram.md) (the diagram in isolation). The same content is presented as an
@@ -103,30 +111,18 @@ interactive, click-to-drill page in [`web/index.html`](web/index.html).
 
 ## 1. Workflow — the headline (`skills/workflow/`)
 
-A from-scratch pipeline that takes a task from a vague idea to a review-ready PR, keeps a human in the
-loop at **every** decision, and reviews code quality, complexity, and simplification with **multiple
-models from different viewpoints** so the version that ships is always the highest-quality one. Three
-beats, in order:
+One skill: find the shape of a task before building it, then decide what's next yourself.
 
 | Skill | Beat | What it does |
 |---|---|---|
-| **`discuss`** | explore | Loose, divergent exploration *before* committing to a design. Riffs across short turns to find the shape of a task, brings opinions and tradeoffs, and deliberately holds off on specs, plans, or code. Hands to `align` only when you say so. |
-| **`align`** | converge | A one-question-at-a-time grilling that converges on a shared design. Each question carries a recommended answer; it pins down vague answers instead of moving on, and depth scales from soft (a few questions) to hard (walk every branch). Run before `ship`. |
-| **`ship`** | build | Drives the aligned spec to a review-ready PR with minimal check-ins and built-in quality gates. The single planned stop is the review gate; every other stop is conditional. A *different* model reviews the spec and the plan (separately, because they fail differently), and a dedicated simplification pass runs before any code is written. It never merges and never fakes green. |
+| **`discuss`** | explore | Loose, opinionated exploration *before* committing to a design — the agent brings takes and tradeoffs, not a fixed interrogation, and deliberately holds off on specs, plans, or code. Once the shape has genuinely converged, it may offer a short structured-question round (Claude Code's `AskUserQuestion`, 2–4 questions in one batch, each with a recommended answer) to pin down what's left. |
 
-The non-obvious part is **who reviews**. A single model that writes a plan and then reviews its own
-plan just agrees with itself, so the blind spots survive into the code. `ship` routes the spec and
-the plan through a genuinely different model, then runs a dedicated simplification pass, so by the
-time execution starts, three independent viewpoints — quality, complexity, simplification — have
-already shaped the plan.
-
-`ship` is an **orchestrator**: it composes third-party pieces honestly (the *superpowers* collection
-for brainstorming / plan-writing / execution) plus the
-author's own `codex-feedback-planning` for cross-model review. The orchestration and the
-always-ship-quality, human-gated pipeline are the contribution here; the composed tools are credited
-and are **not** the author's work. If a composed skill isn't installed, `ship` says so and falls back
-to a plain built-in equivalent rather than pretending the gate ran. See
-[`PROVENANCE.md`](PROVENANCE.md).
+Discuss doesn't hand off to a fixed next skill. For most work, just build directly from there; for a
+multi-step build you want delegated across model-tiered subagents, go to
+[`orchestrate`](#3-delegation-skillsdelegation). Quality on a delegated build isn't a separate
+pipeline stage — it's built into `orchestrate`'s review gates: a *genuinely different* model (Codex
+Sol or Astra) reviews the design and the final diff before anything lands, so a single model never
+grades its own work.
 
 ---
 
@@ -229,9 +225,8 @@ the diff before any of it reaches the main branch.
 
 | Skill | Role | What it does |
 |---|---|---|
-| **`codex-feedback-planning`** | consult | Orchestrates the OpenAI Codex CLI as a **read-only** plan reviewer, pinned to **Sol** (reviews never run on the labor model). A different model reads your plan against the real codebase and tells you what it would break. Makes no changes. |
-| **`codex-task-delegator`** | implement | Orchestrates the OpenAI Codex CLI as an **implementer** in an isolated worktree, pinned to **Luna at max effort**. Claude briefs it, Codex executes, Claude reviews the diff and merges or discards. |
-| **`gemini-delegate`** | both | Orchestrates the Google Gemini CLI in either role — read-only consultant or sandboxed worktree implementer. Same shape as the Codex skills, a different model. |
+| **`codex`** | both | Orchestrates the OpenAI Codex CLI as either a **read-only consultant** (plan/spec/diff review, pinned to **Sol**, reviews never run on the labor model) or a **worktree implementer** (pinned to **Luna at max effort**). One router skill picks the mode from the request. Merges what were two separate skills (`codex-feedback-planning`, `codex-task-delegator`), now kept in [`skills/legacy/`](skills/legacy/README.md) for reference. |
+| **`gemini-delegate`** | both | Orchestrates the Google Gemini CLI in either role — read-only consultant or sandboxed worktree implementer. Same shape as `codex`, a different model. |
 | **`orchestrate`** | reference | Which-agent-when lookup table for a build where every unit of work is delegated to a model-tiered subagent: Fable once up front for the hardest design/plan, Codex Luna at max effort for background labor and Sonnet for interactive labor, Opus for the tricky logic, Codex Sol for the review gates. Ships with an optional [`coordinator-hook.sh`](skills/delegation/orchestrate/coordinator-hook.sh) — a `SessionStart` hook that detects coordinator-tier models (Fable/Opus) and injects a pointer to this skill at session start; silent for everything else. Setup: [`HOOK-INSTALL.md`](skills/delegation/orchestrate/HOOK-INSTALL.md). |
 | **`worktree-init`** | isolate | Creates an isolated git worktree for a branch, copies the untracked local files git won't carry (`.env`, IDE rules, agent config), and bootstraps the environment so the worktree runs immediately. |
 | **`worktree-lifecycle`** | context | Auto-loaded operating manual for an agent running *inside* a worktree: orient, build/test with isolated host resources (own ports, own container-stack name), and clean up without losing uncommitted work. |
@@ -256,6 +251,16 @@ standalone, explorable artifact.
 | Skill | Role | What it does |
 |---|---|---|
 | **`explain-diff-html`** | explain | Turns a code change, diff, branch, or PR into a self-contained HTML page: background, core intuition with toy examples, a walkthrough of the code, and a five-question interactive quiz to check understanding. |
+
+---
+
+## 5. Meta (`skills/meta/`)
+
+Skills about how the other skills — and any instructions fed to a frontier model — get written.
+
+| Skill | Role | What it does |
+|---|---|---|
+| **`lean-instructions`** | write/audit | Rules and an audit procedure for writing skills, `CLAUDE.md`/`AGENTS.md`, hooks, and task prompts for frontier models: narrow triggers, no unconditional pre-reads, permission statements instead of caution language, a stated Done condition. Derived from the OpenAI post cited above — see [`references/astra-2026-09.md`](skills/meta/lean-instructions/references/astra-2026-09.md). v3 (above) is this skill applied to itself. |
 
 ---
 
@@ -285,7 +290,8 @@ Three ways to install, fastest first. All of them put every skill where Claude C
 
 `install.sh` copies **every leaf skill** (each `skills/<block>/<name>/`) into `~/.claude/skills/`,
 **flattening** the category directories — the `workflow/`, `state-memory/`, `delegation/` folders
-exist for browsing, but Claude Code discovers skills by name, so the installed layout is flat. It's
+exist for browsing, but Claude Code discovers skills by name, so the installed layout is flat.
+`skills/legacy/` is skipped on purpose — those skills are reference-only, never installed. It's
 **idempotent** — safe to re-run; it overwrites the harness's own skills and never touches anything
 else in that folder.
 
@@ -314,10 +320,11 @@ The harness also ships as a Claude Code **plugin**, served from its own single-p
 - The second installs the `doruk-ai-harness` plugin
   ([`.claude-plugin/plugin.json`](.claude-plugin/plugin.json)).
 
-> **All 14 skills load natively.** The skills live under category subdirectories
+> **All 12 skills load natively.** The skills live under category subdirectories
 > (`skills/<block>/<name>/`), and each leaf is declared explicitly in the plugin's
 > [`skills[]` manifest](.claude-plugin/plugin.json). Claude Code reads that manifest, so the plugin
-> route picks up every skill without flattening — no reliance on subdirectory recursion. `install.sh`
+> route picks up every skill without flattening — no reliance on subdirectory recursion.
+> `skills/legacy/` is deliberately absent from the manifest. `install.sh`
 > (Option 1) remains an offline / non-Claude-Code fallback that flattens every leaf into
 > `~/.claude/skills/` directly.
 
@@ -338,13 +345,9 @@ the leaf folder into `~/.claude/skills/` is all that's required.
 > commands, path conventions — marked inline as `<...>`. Fill them on first use, or wire them into a
 > thin project wrapper skill that calls these.
 >
-> **External CLIs (delegation + ship's review gate).** The Codex and Gemini skills require their CLIs
-> to be installed separately and authenticated: `npm i -g @openai/codex && codex auth` ·
+> **External CLIs (delegation + orchestrate's review gates).** The Codex and Gemini skills require
+> their CLIs to be installed separately and authenticated: `npm i -g @openai/codex && codex auth` ·
 > `npm i -g @google/gemini-cli`. The skills check for these and tell you if they're missing.
->
-> **Composed skills (`ship`).** For `ship`'s full quality gates, also install the third-party
-> *superpowers* collection. Without them `ship` still runs; it falls back to
-> reviewing manually where a gate would have run.
 
 ---
 
@@ -360,10 +363,12 @@ doruk-ai-harness/
 │   ├── plugin.json               # the doruk-ai-harness plugin (bundles all skills)
 │   └── marketplace.json          # single-plugin marketplace for /plugin
 ├── skills/
-│   ├── workflow/                 # discuss · align · ship  (the headline)
+│   ├── workflow/                 # discuss  (the headline)
 │   ├── state-memory/             # handoff · feature-roadmap · feature-organize · wrap
-│   ├── delegation/               # codex-feedback-planning · codex-task-delegator · gemini-delegate · orchestrate · worktree-init · worktree-lifecycle
-│   └── understanding/                   # explain-diff-html (third-party, imported verbatim — see PROVENANCE.md)
+│   ├── delegation/               # codex · gemini-delegate · orchestrate · worktree-init · worktree-lifecycle
+│   ├── understanding/            # explain-diff-html (third-party, imported verbatim — see PROVENANCE.md)
+│   ├── meta/                     # lean-instructions
+│   └── legacy/                   # align · ship · codex-feedback-planning · codex-task-delegator — reference only, not installed
 ├── docs/                         # system-and-flow, memory-system, diagram
 ├── demo-app/                     # worked example: a real .doruk/ mid-flight
 └── web/index.html                # interactive showcase (GitHub Pages)
@@ -376,5 +381,5 @@ doruk-ai-harness/
 MIT — see [`LICENSE`](LICENSE). These are my own skills, built for Claude Code, except
 `skills/understanding/explain-diff-html` ([external, credit Geoffrey Litt](https://gist.github.com/geoffreylitt/a29df1b5f9865506e8952488eac3d524)).
 The delegation skills orchestrate external CLIs I did not build (OpenAI Codex, Google Gemini), and
-`ship` composes third-party skills (*superpowers*) it does not own. Full honesty on
-what's mine and what isn't: [`PROVENANCE.md`](PROVENANCE.md).
+`skills/legacy/ship` composed the third-party *superpowers* collection (now disabled) before it was
+superseded by `orchestrate`. Full honesty on what's mine and what isn't: [`PROVENANCE.md`](PROVENANCE.md).

@@ -1,121 +1,67 @@
 # System & Flow — how a unit of work moves through the harness
 
-The heart of the harness is a **workflow**: a from-scratch, human-gated pipeline that takes
-a task from a vague idea to a review-ready change, with code quality, complexity, and
-simplification reviewed by **multiple models from different viewpoints** so that what ships
-is always the highest-quality version, not the first one that compiles. Three beats:
+The heart of the harness is a **workflow**: a task starts as a loose idea in `discuss`, then
+either gets built directly or handed to `orchestrate` for a delegated, model-tiered build,
+with code quality reviewed by **multiple models from different viewpoints** on anything that
+goes through orchestrate, so the version that lands is the highest-quality one, not the
+first that compiles.
 
 ```
-   DISCUSS  ─▶  ALIGN  ─▶  SHIP
-   (diverge)   (converge)  (build → multi-model review → review-ready PR)
-        │           │              │
-        └───────────┴──────────────┘
+   DISCUSS  ─▶  build directly, or ORCHESTRATE
+   (diverge)     (model-tiered build + multi-model review gates)
+        │                    │
+        └────────────────────┘
          human in the loop at every decision
 ```
 
 Everything else in the harness exists to serve that workflow: a **state & memory** layer
 (`.doruk/`) so each run orients on solid ground and compounds what it learns, and a
-**delegation & isolation** layer so any beat can be handed to a different model in a
+**delegation & isolation** layer so any unit of work can be handed to a different model in a
 sandboxed git worktree without giving up control. This document covers all three, workflow
 first.
 
 ---
 
-## The workflow — discuss → align → ship
+## The workflow — discuss, then build
 
-This is the headline of the harness. A task starts as a loose idea and ends as a
-review-ready pull request, and a human is in the loop at **every** decision point. The
-discipline that makes it worth running: at multiple points a *different* model reviews the
-work for correctness, complexity, and simplification before it can move forward, so the
-version that ships is the highest-quality one rather than the first that ran green.
+`discuss` is the harness's one workflow skill: **loose, divergent, thinking-out-loud**
+exploration — the opposite of interrogation. The agent acts like a sharp colleague: it
+brings opinions, proposes ideas, names tradeoffs, pokes at assumptions, and pushes back when
+it thinks the user is wrong, all in short turns rather than one big funnel. The goal is to
+find the *shape* of the thing.
 
-The three beats are deliberately separated so each does one job well.
+What discuss deliberately does **not** do: converge on a fixed spec, write a plan, or write
+code. It orients briefly on any existing state/handoff context (active or paused threads, a
+relevant feature's orientation block) if a `.doruk/` layer exists, then just discusses. Once
+the shape has genuinely converged and only a handful of concrete decisions remain, it may
+offer a short structured-question round — 2–4 questions via Claude Code's
+`AskUserQuestion` tool, each carrying a recommended answer, asked as one batch rather than
+back-and-forth grilling.
 
-### 1. discuss — diverge before committing to a design
+Discuss does not hand off to a fixed next skill. When the shape feels settled:
 
-The first beat is **loose, divergent, thinking-out-loud** exploration — the opposite of
-interrogation. Here the agent acts like a sharp colleague: it brings opinions, proposes
-ideas, names tradeoffs, pokes at assumptions, and pushes back when it thinks the user is
-wrong, all in short turns rather than one big funnel. The goal is to find the *shape* of the
-thing.
+- For most work, build it directly in the session.
+- For a big, multi-step build the user wants delegated across subagents, `orchestrate`
+  (`skills/delegation/orchestrate`) picks which model goes where: Fable for the hardest
+  design, Opus drafting constrained designs, Codex Luna or Sonnet for labor, Codex Sol or
+  Astra reviewing the frozen spec and the final diff before anything lands. A human stays in
+  the loop at the points that matter — the design draft, the review gate, and the land
+  decision — and a *genuinely different* model is what reviews the spec and the diff, so a
+  single model never grades its own work.
+- If the repo uses a session-handoff ritual and the work is about to span sessions, run that
+  first.
 
-What discuss deliberately does **not** do: converge, write a spec or plan, or write code. It
-orients briefly on any existing state/handoff context (active or paused threads, a relevant
-feature's orientation block) if a `.doruk/` layer exists, then just discusses. It holds the
-gate — if the user starts drifting toward "just build it," it reminds them this is still
-discussion and offers to move on. It hands off to `align` **only when the user explicitly
-says so**, writing a tight summary of the decided shape and open questions so the user does
-not have to repeat themselves.
-
-### 2. align — converge on a shared design, one question at a time
-
-The middle beat turns the idea into a design both sides agree on by **interviewing the user
-one question at a time**, each question carrying the agent's recommended answer. If the
-codebase can answer a question, the agent goes and looks instead of asking. It does not move
-on while an answer is still vague — it pins each point down first.
-
-Depth scales to the work:
-
-- **Soft** — a few questions on the genuinely open points, then converge. For small or
-  already-clear work.
-- **Hard** — relentless: walk every branch of the decision tree, resolve dependencies one
-  by one, let no vague answer slide. For big, ambiguous, or architectural work.
-
-When unsure, it starts soft and goes deeper only where answers stay fuzzy. When aligned, it
-summarizes the agreed design and offers to run `ship`. Align runs **before** ship by design:
-ship will kick a still-fuzzy or multi-feature scope back here rather than build on sand.
-
-### 3. ship — drive the aligned spec to a review-ready PR
-
-The build beat runs the whole loop with **minimal check-ins**, stopping for a human only at
-the decision points that actually need a person. The single *planned* stop is the review
-gate at the end; every other stop is conditional. The loop's whole reason for existing is
-that what ships is the highest-quality version, so a *different* model reviews the work for
-correctness, complexity, and simplification at several points before it can move forward.
-
-Ship **composes** existing pieces rather than reimplementing them — the orchestration (the
-order, the human gates, the always-review-quality discipline) is the contribution. The flow:
-
-1. **Scope** — state goal + scope in ~2 lines. If it spans multiple independent features or
-   is still fuzzy, stop and send the user back to `align`.
-2. **Spec** — write the spec into the memory layer (`.doruk/features/<topic>/`). This folder
-   is working state, not deliverable; it stays out of the PR diff.
-3. **Cross-model spec review** — a *different* model critiques the spec against the real
-   repo. Fold in the feedback. (No external CLI? Say so and review it yourself.)
-4. **Plan** — write the implementation plan into the same folder.
-5. **Cross-model plan review** — a *fresh* pass on the plan (not the spec). Spec-level and
-   plan-level blind spots differ, so both get an independent viewpoint.
-6. **Simplification pass** — a deletion-biased complexity review runs inline on the plan **when**
-   the work adds new code with defensive or speculative surface (new reports, tool
-   libraries, services, components), and is **skipped** (with a one-line reason) on small
-   already-reviewed diffs or on contracts / migrations / prompts / persona where such a
-   reviewer misfires. It runs with the locked design plus an explicit **do-not-cut list**
-   (correctness fixes, escaping, input validation, security, schema/contract bumps) so it
-   cuts safely. Accepted cuts fold back into the plan.
-7. **Execute** — pick the execution mode by task shape and say which and why in one line:
-   independent / parallelizable / large surface → one subagent per independent task;
-   coupled / sequential / small / heavy shared context → inline in this session.
-8. **PR** — open the pull request with the project's normal ritual. Never push from a
-   worktree or open a PR on uncommitted work.
-9. **Review gate — stop for the human.** Trigger whatever automated PR reviewer the project
-   uses (a CI review bot, a hosted review service, or a second-model review on the diff) and
-   wait. Present **every** finding by severity in plain language, each with a recommended
-   action. Fix the clear ones, surface the judgment calls for the human, iterate until the
-   human says the PR is solid. **Do not merge** — review-ready is the finish line; the human
-   owns the merge.
-
-Ship stops early only when a cross-model review flags a **blocking** design flaw, when tests
-genuinely won't pass (never fake green), or when scope turns out to be unsettled or
-multi-feature (kick back to `align`). Between steps it reports progress in **batches**, not
-step by step — minimal check-ins were the ask.
-
-> **The quality engine.** Steps 3, 5, and 9 are the centerpiece: spec review, plan
-> simplification, and the final diff review are each an *independent* viewpoint, and they
-> can come from different models. The point is not redundancy for its own sake — spec-level,
-> plan-level, and diff-level blind spots are genuinely different, and a model that did not
-> write the work catches what the author cannot see. The composed pieces are third-party and
-> not the author's work — the **superpowers** build-loop scaffold,
-> credited in the repo's README and PROVENANCE; the orchestration is.
+> **Legacy.** Earlier versions ran a scripted `discuss → align → ship` pipeline: `align`
+> interrogated one question at a time to converge on a design, and `ship` then drove a
+> spec → cross-model review → plan → simplification → execute → PR loop that composed the
+> third-party `superpowers` collection. That scaffolding was built for pre-Fable models that
+> needed it; with Fable 5.1 / Opus 5 class models, `align`'s job folded into `discuss` as the
+> optional structured-question round above, and `ship`'s job is now planning and delegating
+> directly through `orchestrate`. Both are kept for reference, unindexed, in
+> [`skills/legacy/`](../skills/legacy/README.md). The rationale — and the rules for writing
+> lean instructions generally — live in
+> [`skills/meta/lean-instructions`](../skills/meta/lean-instructions/SKILL.md), derived from
+> OpenAI's September 2026 post on trimming scaffolding for GPT-6 Astra.
 
 ---
 
@@ -289,8 +235,8 @@ When to reach for each:
 
 - **Consultant** — after a non-trivial plan is created (multiple files or an architectural
   change), to catch design issues *before* coding. Also any time a second opinion from a
-  different model is wanted on a plan, design, or diff. This is the role the ship beat's
-  cross-model spec and plan reviews use.
+  different model is wanted on a plan, design, or diff. This is the role `orchestrate`'s
+  review gates use.
 - **Implementer** — when the driving agent is stuck after a couple of honest attempts, when
   a task needs more codebase context than fits comfortably in one window, or when the user
   explicitly asks. Not for first attempts or trivial fixes — try it yourself first.
@@ -321,12 +267,13 @@ When to reach for each:
   delegation. (For background runs the redirect attaches to the inner CLI command, not the
   subshell — the CLI inherits stdin from its parent.)
 
-Three delegation skills implement this shape:
+Two delegation skills implement this shape, one per provider:
 
-- **codex-feedback-planning** — Codex as a read-only consultant on a plan or design.
-- **codex-task-delegator** — Codex as an implementer in an isolated worktree.
-- **gemini-delegate** — Gemini in *either* role (consultant via plan mode, implementer via
-  yolo + worktree), auto-selecting the mode from the task.
+- **codex** — the OpenAI Codex CLI in *either* role: a read-only consultant on a plan, spec,
+  or diff, or an implementer in an isolated worktree, auto-selecting the mode from the task.
+  One router skill; merges what were two separate skills (`codex-feedback-planning`,
+  `codex-task-delegator`), now kept in `skills/legacy/` for reference.
+- **gemini-delegate** — the Google Gemini CLI, the same shape as `codex`, a different model.
 
 Why two providers and two roles share one shape: the harness can get a second opinion from a
 *different* model (one provider already weighed in), compare approaches across providers
@@ -337,10 +284,10 @@ same isolate → brief → review → merge loop, so switching models costs noth
 
 ## How it all composes
 
-The **workflow** is the spine: discuss finds the shape, align converges on a design,
-ship drives it to a review-ready PR with quality reviewed by multiple models at every gate.
-The **state & memory** layer is what the workflow orients on before it starts and writes back
-to after it finishes, so each run compounds. **Delegation & isolation** is how any beat —
-a spec review, a plan critique, a stuck implementation — gets handed to a different model
-safely, in a worktree, with the driving agent reviewing the diff before anything reaches
-main. One workflow, one folder of state, many models.
+The **workflow** is the spine: discuss finds the shape, then either you build it directly or
+`orchestrate` drives a delegated, model-tiered build with quality reviewed by a different
+model at each gate. The **state & memory** layer is what the workflow orients on before it
+starts and writes back to after it finishes, so each run compounds. **Delegation &
+isolation** is how any unit of work — a spec review, a plan critique, a stuck implementation
+— gets handed to a different model safely, in a worktree, with the driving agent reviewing
+the diff before anything reaches main. One workflow, one folder of state, many models.

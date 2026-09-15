@@ -1,16 +1,15 @@
 ---
 name: orchestrate
-description: Use when running a multi-step build where you delegate every unit of work to
-  model-tiered subagents instead of coding yourself. Triggers on "orchestrate this", "run
-  this end to end with agents", "delegate with model tiers", "coordinator", "delegate", "agent
-  team", or any task where you are the orchestrator spawning fable/opus/sonnet subagents and
-  want to know which model goes where.
+description: Use when delegating every unit of a multi-step build to model-tiered Claude
+  subagents instead of coding it yourself. Triggers on "orchestrate this", "run this end to
+  end with agents", "delegate with model tiers", or picking which model (fable/opus/sonnet)
+  a spawn should get.
 user_invocable: true
 metadata:
   author: doruktarhan
-  version: "2.3.0"
+  version: "3.0.0"
   domain: orchestration
-  triggers: orchestrate this, run this end to end with agents, delegate with model tiers, coordinator, delegate, agent team
+  triggers: orchestrate this, run this end to end with agents, delegate with model tiers
   role: reference
   scope: model-tiering
   output-format: terminal
@@ -18,148 +17,100 @@ metadata:
 
 # Orchestrate — roles, classification, model tiers
 
-## Roles (check first)
+Evidence behind the thresholds, and incident history: [`references/rationale.md`](references/rationale.md).
 
-Three roles, keyed by ROLE, not model name:
+## Roles
 
-- **coordinator** — designs, classifies, delegates, reviews, lands. Never does bulk labor itself.
-- **executor** — a leaf. Does the work order itself, NEVER spawns agents, reports back when
-  blocked instead of improvising.
-- **foreman** — OPT-IN. Owns one complete build; may spawn Sonnet leaf executors and run its
-  own mid-build Codex review iterations. May NOT spawn another foreman — one level deep, ever.
+Keyed by ROLE, not model tier; a role names spawn rights only.
 
-If your prompt starts with `ROLE: EXECUTOR` or `ROLE: FOREMAN`, or you were spawned by
-another agent, adopt that role and its constraints. As coordinator, start every spawn
-prompt with the role line. Foreman rights are granted explicitly in the work order,
-including a rough size budget. Default for all spawns is executor (no spawn rights) —
-foreman is rare; reach for it only when a whole multi-day build is handed down at once.
+| Role | Rights |
+|------|--------|
+| coordinator | Designs, classifies, delegates, reviews, lands. No bulk labor. |
+| executor | Leaf. Does the order, spawns nothing, reports back when blocked rather than improvising. |
+| foreman | Opt-in, granted in the order with a size budget. Owns one build, may spawn Sonnet leaves and run mid-build Codex reviews, cannot spawn another foreman. |
+
+Spawns default to executor; foreman is rare, for a multi-day build handed down at once. Open
+each spawn prompt with its role line; adopt the role your own prompt names, or executor if
+an agent spawned you.
 
 ## Intake classification
 
-One classification per task, decided once, up front: **open / constrained / mechanical**.
+One per task, up front, surfaced to Doruk as a one-liner ("treating this as: constrained")
+so he can veto cheaply. He may also trigger any review manually.
 
-- **open** — design space wide, wrong shape expensive (new subsystem, frozen API contracts,
-  security/concurrency). Fable designs directly; Codex gates: spec review + final diff review.
-- **constrained** — codebase/pattern dictates most of the shape. Opus drafts the design,
-  Fable (coordinator) reviews/approves it; Codex gate: final diff review only.
-- **mechanical** — rename/bump/lint-fix/test-add/apply-a-specified-fix. No designer, no Codex
-  gate by default.
-- **Escalation**: if a mechanical task's diff outgrows its classification (touches shared or
-  risk-bearing code — auth, money, data writes, concurrency, migrations — or the executor
-  reports surprises/failed attempts), upgrade to a Sol diff review before landing (Astra if it turned out to be architectural or backend-critical).
-- Surface the classification to Doruk as a one-liner at task start ("treating this as:
-  constrained — Opus designs, diff gate only") so he can veto cheaply. He may also trigger
-  any review manually at any time.
+| Class | Meaning | Designer | Gates |
+|-------|---------|----------|-------|
+| open | Wide design space, wrong shape expensive: new subsystem, frozen API contract, security, concurrency. | Fable directly | Adversarial spec review, then diff review before landing |
+| constrained | Codebase or pattern dictates the shape. | Opus drafts, Fable approves | Diff review before landing |
+| mechanical | Rename, bump, lint-fix, test-add, apply-a-specified-fix. | none | none by default |
 
-## Which model, when
+Escalation: a mechanical diff touching risk-bearing code (auth, money, data writes,
+concurrency, migrations), or drawing surprises and failed attempts from the executor, gets a
+Sol diff review before landing, Astra if it turned out architectural or backend-critical.
 
-| Role/tier  | Model                              | Notes |
-|------------|-------------------------------------|-------|
-| Coordinator| The resident session model         | Fable when available; same rules apply unchanged if the resident is Opus/Sonnet on a throttled week — rules are role-keyed on purpose. |
-| Design     | Fable (open) / Opus (constrained)  | Opus drafts constrained designs; Fable reviews the draft — reviewing costs ~5% of producing. |
-| Executors  | Codex Luna @ max (background) / Sonnet (interactive) | TRIAL from 2026-08-03: Luna at max effort is the default for long-running background labor — separate quota pool from Claude Max, and latency stops mattering when the coordinator moves to another thread. Sonnet for labor you will iterate on mid-flight. Never Haiku — rework costs more than the savings. |
-| Reviewer   | Codex Sol (routine) / Codex Astra (heavyweight) | Never Luna, never a smaller Codex tier — a weak reviewer is false confidence. Sol is the default: medium effort, high for very complex/open work; a foreman's own mid-build reviews may run lower effort (converging, not certifying). Coordinator's final gate stays Sol at medium+. **Escalate to Astra at medium effort** (high only for the hardest open specs) when the artifact is a big architectural change, a backend build (services, data layers, migrations, auth, concurrency), or a complex spec. Astra on a routine diff is money burned. |
+## Which model
 
-Role names describe **spawn rights**, not model tier: a constrained-flow design draft is an
-executor (no spawn rights) that happens to run on Opus per the Design row above — "Sonnet,
-always" is about labor/implementation executors specifically, not every executor spawn.
+| Tier | Model | Notes |
+|------|-------|-------|
+| Coordinator | Resident session model | Fable when available; rules are role-keyed, so they hold on Opus or Sonnet. |
+| Design | Fable (open) / Opus (constrained) | Fable reviews Opus's draft. |
+| Labor executor | Codex Luna at max effort (background) / Sonnet (interactive) | Sonnet for labor you will iterate on mid-flight, and browser/QA. Never Haiku. |
+| Reviewer | Codex Sol (routine) / Codex Astra (heavyweight) | Never Luna or a smaller tier. Sol at medium, high for very complex or open work; the coordinator's final gate never below medium, a foreman's mid-build reviews may go lower. Astra at medium, high only for the hardest open specs, on big architectural changes, backend builds (services, data layers, migrations, auth, concurrency), and complex specs. |
 
-**Hard rule, unchanged from v1:** always set `model` explicitly on every spawn. Never
-default-inherit — a coordinator running as Fable that forgets the flag silently spawns
-everything at Fable cost.
+A constrained design draft is an executor running on Opus: "Sonnet always" covers labor
+executors, not every spawn. Set `model` explicitly on every spawn; never default-inherit.
 
-## Codex executors (Luna) vs Codex reviews (Sol / Astra)
+## Codex
 
-Two different models through the same CLI — never the same call. Both pin the model explicitly,
-same reason as the Claude "never default-inherit" rule: `~/.codex/config.toml` holds whatever Doruk
-last set interactively, so an unpinned `codex exec` silently retiers the work.
+Labor is `gpt-5.6-luna` at max effort in `workspace-write`; reviews are `gpt-5.6-sol` or
+`gpt-6-astra` at medium in `read-only`. Pin `-m` on every `codex exec`, or it takes whatever
+`~/.codex/config.toml` was last set to. Luna executors are Bash processes, so the
+persistent-agent rules below do not reach them and `codex exec resume` is weak — route
+iterative work to Sonnet. Invocation lines: `references/rationale.md`.
 
-```bash
-# labor  → codex-task-delegator
-codex exec -m gpt-5.6-luna -c model_reasoning_effort="max" --sandbox workspace-write "<order>" < /dev/null
-# review → codex-feedback-planning   (effort: medium default, high for open/complex)
-codex exec -m gpt-5.6-sol  -c model_reasoning_effort="medium" --sandbox read-only "<order>" < /dev/null
-# heavyweight review → architecture / backend builds / complex specs only (codex-cli 0.153.4+)
-codex exec -m gpt-6-astra  -c model_reasoning_effort="medium" --sandbox read-only "<order>" < /dev/null
-```
+## Delegation
 
-Luna executors are Bash processes, not Claude subagents. Consequences: no `SendMessage`, no
-`depth-gauge.sh`, no `ROLE: EXECUTOR` enforcement — the persistent-agent section below does not
-apply to them. Follow-ups go through `codex exec resume` (weaker than a warm Claude agent), so
-route work you expect to iterate on to Sonnet instead. Launch background runs with
-`run_in_background` and collect the output file. A tmux-backed control layer for real session
-continuity is a known future upgrade, not built.
-
-## Delegation heuristics
-
-- Delegate by expected context-tonnage, not task importance: needing >~2–3 files read, or not
-  knowing where the answer lives → fan out Sonnet scouts. A targeted lookup you already know
-  the location of → do it directly (delegation overhead costs more than the lookup).
-- Exception the coordinator keeps: code it is making an architectural bet on, and any
-  instructions, skill files, or specs it will itself act on — read those yourself;
-  secondhand summaries lose exactly what the design hinges on.
-- Task-size flip: if the new work itself looks >~150k tokens of reading+writing, that alone
-  says "fresh dedicated agent," regardless of any existing agent's state.
-- Brief big work orders BY REFERENCE (a frozen spec file in the feature folder: "Read FIRST:
-  `<path>`"), not by inline context-dump. Brief small work fully inline.
-- Executor prompts are self-contained — context, constraints, expected output format.
-  Subagents don't see the conversation. Review their output before accepting it.
+- Delegate by context tonnage, not importance: over ~2–3 files to read, or not knowing where
+  the answer lives, means Sonnet scouts. A lookup you can already locate, do direct.
+- Read yourself: code you are making an architectural bet on, plus instructions, skills, and
+  specs you will act on. Secondhand summaries lose what the design hinges on.
+- Fable writes instructions for agents: skills, CLAUDE.md/AGENTS.md, hook text, task-prompt
+  templates. Opus and Sonnet audit, research, and report; Fable distills their reports into
+  the text, following `lean-instructions`. Probe the real system yourself, test with one
+  fresh Sonnet run allowed to read only the skill file, fix what it got wrong. If the
+  coordinator is not Fable, spawn a Fable agent for this step.
+- New work over ~150k tokens of reading plus writing gets a fresh dedicated agent, whatever
+  any existing agent's state.
+- Brief big orders by reference to a frozen spec ("Read FIRST: `<path>`"), small work inline.
+  Prompts are self-contained: context, constraints, output format. Review output before
+  accepting it.
 
 ## Persistent agents
 
-- Default: keep a deep agent ALIVE and message it (SendMessage) for follow-ups, revisions,
-  and related next steps, rather than spawning fresh. A 476k-token builder stayed sharp on a
-  1M-token window — depth alone isn't a reason to retire an agent. **Window caveat:** that
-  evidence is from a 1M window; subagents in this harness were measured at **~200k windows**
-  (skill-builder incident, 2026-07-22). Confirm the window per environment before leaning on
-  it — never assume 1M.
-- Fresh spawn only for: genuinely unrelated work, or a degraded/off-the-rails agent.
-- The one named mistake to avoid: re-spawning fresh for a REVISION of work an existing agent
-  already did — that re-buys context the team already paid for.
-- **Named failure mode — the warm-reuse pull:** after a session where persistence was cheap,
-  the coordinator will *feel* like handing NEW work to a warm agent. That feeling is the bug.
-  Route by the 2×2: follow-ups/revisions/questions → warm agent; new substantial work →
-  fresh agent, regardless of how convenient the warm one looks.
-- **Depth is measured, never guessed.** Executor self-reports use absolute tokens plus
-  assumed window ("context ≈ 100k of ~200k"), never a bare percentage — "55% full" has no
-  denominator and is a model guess. The coordinator treats self-reports as hints only:
-  before ANY reuse-for-a-new-task decision, measure with `depth-gauge.sh <session-dir>`
-  (in this skill's folder), which prints per-agent live context from the last `"usage"`
-  object in each transcript (`~/.claude/projects/<proj>/<session>/subagents/agent-*.jsonl`;
-  live ctx = input_tokens + cache_read_input_tokens + cache_creation_input_tokens).
-- "A deep agent is a good witness and a bad builder": keep asking it questions; stop giving it
-  new projects. Thresholds are window-relative: **~50–60% of the actual window = no new
-  tasks** (that's ~100–120k on a 200k window; the older ~150k "deep" marker only fits a 1M
-  window).
-- Forced retirement only (context pressure, cost, or degradation): the retiring agent's LAST
-  task is a successor note — what it built, decisions made, file map, gotchas, dead ends. The
-  coordinator's own record is too distilled to reconstruct that. No handoff files otherwise;
-  it's hub-and-spoke — leaf executors never communicate laterally; communication flows
-  coordinator → (foreman) → leaf, at most one delegated level.
+Route by a 2×2: follow-ups, revisions, and questions to the warm agent, messaged rather than
+respawned; new substantial work to a fresh agent, however convenient the warm one looks.
+Otherwise spawn fresh only for unrelated work or a degraded agent.
+
+- Depth is measured, never guessed: run `depth-gauge.sh <session-dir>` (this folder) before
+  reusing an agent for new work. Self-reports are hints, in absolute tokens plus assumed
+  window ("≈ 100k of ~200k"), never a percentage.
+- Thresholds are window-relative: ~50–60% of the real window means no new tasks, so ~100–120k
+  on a 200k window. Confirm the window per environment; never assume 1M.
+- A deep agent is a good witness and a bad builder: keep asking questions, stop giving projects.
+- Forced retirement only (context pressure, cost, degradation), and its last task is a
+  successor note: what it built, decisions, file map, gotchas, dead ends. No other handoff
+  files — it is hub-and-spoke, coordinator → (foreman) → leaf, one delegated level, no
+  lateral talk.
 
 ## Review gates
 
-- Gates fire on frozen artifacts only (a spec, a final diff), never on intermediate states.
-- **open** → adversarial spec review BEFORE implementation + diff review before landing. Both run on
-  **Astra** when the work is a big architectural change, a backend build, or a complex
-  spec — which is most open work; Sol otherwise.
-- **constrained** → Sol diff review before landing, escalated to Astra if the change turns out to be
-  architectural or backend-critical. **mechanical** → none by default (see escalation rule above).
-- The coordinator owns triggering each gate, evaluating the review report, and the land
-  decision — that ownership is never delegated, never skipped; Codex Sol (or Astra, when escalated)
-  performs the artifact reviews themselves.
-- Current mechanism: existing codex skills / codex CLI. Migration to
-  `openai/codex-plugin-cc` (`/codex:review`, `/codex:adversarial-review`) is a future step —
-  gate language above is written mechanism-neutral ("run a Sol diff review") so that migration
-  only swaps the how.
+Gates fire on frozen artifacts only, a spec or a final diff, never intermediate states. The
+class table says which gate, the reviewer row says Sol or Astra. Codex reviews; the
+coordinator owns triggering each gate, judging the report, and landing. Mechanism today is
+the codex skills and CLI, kept mechanism-neutral here.
 
-## Sessions that are NOT builds
+In discuss and research sessions, roles, classification, and gates stay off until hands-on
+work starts. All of the above are defaults, not a contract.
 
-In discuss/research sessions the only rule that always applies: delegate read-heavy
-exploration to Sonnet scouts instead of reading broadly yourself. Full orchestration
-(roles, classification, gates) activates once hands-on work starts.
-
-## Kept from v1
-
-- Labor defaults to Luna (background) or Sonnet (interactive); browser/QA work → Sonnet.
-- These are defaults, not a contract — adjust on the road.
+Done when every delegated unit has returned and been verified, its gate cleared, the work
+landed, and a summary reported to Doruk.

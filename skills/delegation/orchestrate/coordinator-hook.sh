@@ -30,10 +30,7 @@
 # construction — the escaping step is belt-and-suspenders, not load-bearing.
 
 POINTER='Coordinator-tier session. If this session turns to hands-on work, invoke the
-`orchestrate` skill and follow its delegation rules — you coordinate; executors build.
-Even in pure discussion/research: delegate read-heavy exploration to Sonnet scout
-subagents instead of reading broadly yourself — except targeted reads you already
-know the location of, and any instructions/skills/specs you will act on yourself.'
+`orchestrate` skill and follow its delegation rules — you coordinate; executors build.'
 
 # Extract a `"model"` value from a settings-shaped JSON file. Tries plutil
 # (macOS-native, real JSON parse — honest against nested "model" keys under
