@@ -16,10 +16,6 @@ page in [`web/`](web/) are my own work, designed and written by me (Doruk Tarhan
   isn't.
 - **`gemini-delegate`** orchestrates the **Google Gemini CLI** the same way — mine is the skill, not
   the CLI.
-- **`skills/browser/jev-browser`** and its `jb` CLI are mine: the skill, the browser runtime, the
-  action enumeration, and the safety stops. The **Jev** model that picks each action is TypeSafe
-  AI's, called through Vercel AI Gateway or TypeSafe's API. Form typing goes through a small
-  Gemini model on the same Gateway. `jb` runs on Microsoft's Playwright.
 - **`skills/understanding/explain-diff-html`** is imported verbatim from a
   [gist by Geoffrey Litt](https://gist.github.com/geoffreylitt/a29df1b5f9865506e8952488eac3d524) —
   packaged as a Claude Code skill, prompt unchanged.

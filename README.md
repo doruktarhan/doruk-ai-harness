@@ -11,14 +11,13 @@ an outcome into something a human can actually absorb.
 
 [Workflow](#1-workflow--the-headline-skillsworkflow) · [State & Memory](#2-state--memory-skillsstate-memory) ·
 [Delegation](#3-delegation-skillsdelegation) · [Understanding](#4-understanding-skillsunderstanding) ·
-[Meta](#5-meta-skillsmeta) · [Browser](#6-browser-skillsbrowser--new) ·
+[Meta](#5-meta-skillsmeta) · [Jev Browser](#6-jev-browser--separate-repo-new) ·
 [Install](#install) · [Demo](#see-it-in-motion--demo-app) · [Showcase page](web/index.html)
 
-> **New: [`jev-browser`](#6-browser-skillsbrowser--new).** A skill plus a CLI (`jb`) I built so an
-> agent can hand a whole "find this on the website" goal to a browser action model (Jev) in **one
-> call**, instead of driving Playwright click by click. In a head-to-head test it finished the same
-> tasks in **9.6–12.9 s versus 14.4–29.2 s** for Playwright MCP, and it used a fraction of the
-> agent's context. [Benchmark →](docs/benchmarks/jev-vs-playwright.md)
+> **New: [`jev-browser`](https://github.com/doruktarhan/jev-browser)**, a skill plus CLI I built so an
+> agent can hand a whole "find this on a website" goal to a browser action model in **one call**. In a
+> 72-run benchmark against Playwright MCP it used **30% fewer agent tokens overall, and about half on
+> heavy pages**. [Details ↓](#6-jev-browser--separate-repo-new)
 
 ---
 
@@ -104,8 +103,8 @@ flowchart TB
     class DG1,DG2,DG3,DG4,DG5 dg;
 ```
 
-The skills live under six category directories — `skills/workflow/`, `skills/state-memory/`,
-`skills/delegation/`, `skills/understanding/`, `skills/meta/`, `skills/browser/` — that exist for browsing (plus
+The skills live under five category directories — `skills/workflow/`, `skills/state-memory/`,
+`skills/delegation/`, `skills/understanding/`, `skills/meta/` — that exist for browsing (plus
 `skills/legacy/`, kept for reference and not installed — see [§ Why v3](#why-v3-trimmed-for-fable-class-models)).
 Each leaf is a standard Claude Code skill (`skills/<block>/<name>/SKILL.md`). For the full description see
 [`docs/system-and-flow.md`](docs/system-and-flow.md) (the architecture),
@@ -271,29 +270,23 @@ Skills about how the other skills — and any instructions fed to a frontier mod
 
 ---
 
-## 6. Browser (`skills/browser/`) — new
+## 6. Jev Browser · separate repo, new
 
-Web navigation that the coding agent **delegates** instead of performing. The agent writes one
-narrow goal ("open the API reference, search for `waitForSelector`, stop when the heading is
-visible") and makes one `jb run` call. `jb` launches an isolated Playwright Chromium. At each step it
-lists the page's legal actions, and **Jev**, TypeSafe AI's "System One" action model, picks one and
-reports a calibrated probability. The agent gets back a small JSON summary and a final screenshot,
-not a stream of DOM snapshots.
+**[`doruktarhan/jev-browser`](https://github.com/doruktarhan/jev-browser)**: a skill plus the `jb`
+CLI I built. The agent hands a whole "find / open / fill this on a website" goal to **Jev**, TypeSafe
+AI's browser-action model, in one call, and gets back a small JSON summary and a screenshot. It lives
+in its own repo, with its own install and a full benchmark.
 
-| Skill | Role | What it does |
-|---|---|---|
-| **`jev-browser`** | navigate | Find, open, or navigate to something on a site, or fill in a form there, through the bundled [`jb`](skills/browser/jev-browser/jb/README.md) CLI (TypeScript, Node 22+). The skill encodes what the benchmark taught: goals should use the site's search box rather than scroll hunts, `done_unverified` counts only after the screenshot confirms it, CAPTCHA/login/payment stops come back to the user as `REVIEW`, and `BLOCKED` or `step_limit` falls back to Playwright MCP. |
+From the [72-run benchmark against Playwright MCP](https://github.com/doruktarhan/jev-browser/blob/main/benchmarks/2026-09-24/README.md):
 
-**How it compares with Playwright MCP.** On the same tasks, Jev's verified runs finished in
-9.6–12.9 s with one agent call each. Playwright MCP needed 14.4–29.2 s and 3–9 tool calls, and one
-of its `browser_find` results alone pushed ~22k tokens into the agent's context. Playwright MCP
-still owns testing, assertions, network/console inspection, tabs, and storage. Full numbers, failure
-modes, and caveats (n=1 per task) are in
-[`docs/benchmarks/jev-vs-playwright.md`](docs/benchmarks/jev-vs-playwright.md).
-
-> **Honest scope.** The skill and the `jb` CLI are mine. The Jev model is TypeSafe AI's, reached
-> through Vercel AI Gateway or TypeSafe's API. Setup (npm install, Chromium, API keys in
-> `~/.jb/config.json`) is in [`jb/README.md`](skills/browser/jev-browser/jb/README.md).
+- **Good at docs search, short forms, and listing clicks.** Python docs, react.dev, playwright.dev,
+  Wikipedia, and both forms passed 3/3, in 2–5 steps.
+- **Much cheaper for the calling agent.** It used 30% fewer tokens across all runs and about half
+  on heavy pages (44k vs 92–118k).
+- **Less reliable than Playwright MCP.** It passed 86% of runs against 100%. It failed MDN (never
+  found the search box) and a GitHub file lookup, and multi-step filters needed retries.
+- **Routing rule:** use Jev first for navigation. Use Playwright MCP for testing, assertions,
+  network/console inspection, and whenever Jev returns `BLOCKED` or `step_limit`.
 
 ---
 
@@ -381,10 +374,7 @@ the leaf folder into `~/.claude/skills/` is all that's required.
 > **External CLIs (delegation + orchestrate's review gates).** The Codex and Gemini skills require
 > their CLIs to be installed separately and authenticated: `npm i -g @openai/codex && codex auth` ·
 > `npm i -g @google/gemini-cli`. The skills check for these and tell you if they're missing.
->
-> **`jev-browser` needs a one-time setup.** Run `npm install` and install Chromium for `jb`, add an
-> AI Gateway or TypeSafe key, and put `jb` on your PATH. See
-> [`skills/browser/jev-browser/jb/README.md`](skills/browser/jev-browser/jb/README.md).
+
 
 ---
 
@@ -405,9 +395,8 @@ doruk-ai-harness/
 │   ├── delegation/               # codex · gemini-delegate · orchestrate · worktree-init · worktree-lifecycle
 │   ├── understanding/            # explain-diff-html (third-party, imported verbatim — see PROVENANCE.md)
 │   ├── meta/                     # lean-instructions
-│   ├── browser/                  # jev-browser (+ the jb CLI it drives)
 │   └── legacy/                   # align · ship · codex-feedback-planning · codex-task-delegator — reference only, not installed
-├── docs/                         # system-and-flow, memory-system, diagram, benchmarks/
+├── docs/                         # system-and-flow, memory-system, diagram
 ├── demo-app/                     # worked example: a real .doruk/ mid-flight
 └── web/index.html                # interactive showcase (GitHub Pages)
 ```
@@ -418,7 +407,6 @@ doruk-ai-harness/
 
 MIT — see [`LICENSE`](LICENSE). These are my own skills, built for Claude Code, except
 `skills/understanding/explain-diff-html` ([external, credit Geoffrey Litt](https://gist.github.com/geoffreylitt/a29df1b5f9865506e8952488eac3d524)).
-The delegation skills orchestrate external CLIs I did not build (OpenAI Codex, Google Gemini),
-`jev-browser` calls TypeSafe AI's Jev model, and
+The delegation skills orchestrate external CLIs I did not build (OpenAI Codex, Google Gemini), and
 `skills/legacy/ship` composed the third-party *superpowers* collection (now disabled) before it was
 superseded by `orchestrate`. Full honesty on what's mine and what isn't: [`PROVENANCE.md`](PROVENANCE.md).
