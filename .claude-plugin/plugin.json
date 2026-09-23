@@ -1,7 +1,7 @@
 {
   "name": "doruk-ai-harness",
   "version": "3.0.0",
-  "description": "A coding harness for Claude Code. Work starts in discuss: loose, opinionated exploration to find a task's shape, with an optional structured-question round to pin down what's left. From there you build directly, or hand a multi-step build to orchestrate, which delegates every unit to model-tiered subagents and gates design and diff review with a different model. A committed .doruk/ state & memory layer (handoff, feature-roadmap, feature-organize, wrap) keeps context on disk, not in the chat window. Delegation hands work to other models in isolated git worktrees: codex (OpenAI) and gemini-delegate (Google), each a consultant or implementer. skills/meta/lean-instructions writes and audits instructions for frontier models. Bundles 12 skills across five category dirs; skills/legacy/ keeps the superseded pre-Fable pipeline for reference.",
+  "description": "A coding harness for Claude Code. Work starts in discuss: loose, opinionated exploration to find a task's shape, with an optional structured-question round to pin down what's left. From there you build directly, or hand a multi-step build to orchestrate, which delegates every unit to model-tiered subagents and gates design and diff review with a different model. A committed .doruk/ state & memory layer (handoff, feature-roadmap, feature-organize, wrap) keeps context on disk, not in the chat window. Delegation hands work to other models in isolated git worktrees: codex (OpenAI) and gemini-delegate (Google), each a consultant or implementer. skills/meta/lean-instructions writes and audits instructions for frontier models. skills/browser/jev-browser drives a real browser with the Jev action model through the bundled jb CLI. Bundles 13 skills across six category dirs; skills/legacy/ keeps the superseded pre-Fable pipeline for reference.",
   "author": {
     "name": "Doruk Tarhan"
   },
@@ -17,7 +17,8 @@
     "./skills/delegation/worktree-init",
     "./skills/delegation/worktree-lifecycle",
     "./skills/understanding/explain-diff-html",
-    "./skills/meta/lean-instructions"
+    "./skills/meta/lean-instructions",
+    "./skills/browser/jev-browser"
   ],
   "homepage": "https://github.com/doruktarhan/doruk-ai-harness",
   "repository": "https://github.com/doruktarhan/doruk-ai-harness",
@@ -35,6 +36,8 @@
     "delegation",
     "codex",
     "gemini",
-    "lean-instructions"
+    "lean-instructions",
+    "browser-automation",
+    "jev"
   ]
 }

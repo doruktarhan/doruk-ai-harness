@@ -10,7 +10,7 @@
 #
 # The skills are organized into category directories for browsing:
 #   skills/workflow/   skills/state-memory/   skills/delegation/
-#   skills/understanding/   skills/meta/
+#   skills/understanding/   skills/meta/   skills/browser/
 # Each LEAF (skills/<block>/<name>/, containing a SKILL.md) is a real skill.
 # Claude Code discovers skills by name, not by category, so this script
 # FLATTENS the categories: every leaf is copied into ~/.claude/skills/<name>/.
