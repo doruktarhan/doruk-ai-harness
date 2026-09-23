@@ -117,11 +117,12 @@ interactive, click-to-drill page in [`web/index.html`](web/index.html).
 
 ## 1. Workflow — the headline (`skills/workflow/`)
 
-One skill: find the shape of a task before building it, then decide what's next yourself.
+Two skills: find the shape of a task before building it, then prove the result actually works before calling it done (`prove-it` is model-invoked, not a slash command — the agent reaches for it on its own when it is about to write tests or declare a feature done).
 
 | Skill | Beat | What it does |
 |---|---|---|
 | **`discuss`** | explore | Loose, opinionated exploration *before* committing to a design — the agent brings takes and tradeoffs, not a fixed interrogation, and deliberately holds off on specs, plans, or code. Once the shape has genuinely converged, it may offer a short structured-question round (Claude Code's `AskUserQuestion`, 2–4 questions in one batch, each with a recommended answer) to pin down what's left. |
+| **`prove-it`** | verify | "Done" means exercised through the real entry point (UI, CLI, API, the running skill) with a repeatable artifact left behind: a script that reruns the check plus its output, screenshot, or recording. End-to-end for complex features; isolated tests only for genuinely standalone logic, and those list failure modes before code. The repo's own test conventions win. It's adapted from a popular set of absolute testing rules ("never write unit tests after code," "E2E as the sole mechanism") and deliberately rewritten as defaults instead of absolutes, per [`lean-instructions`](skills/meta/lean-instructions) — absolutes make capable models rigid where a rule doesn't fit. |
 
 Discuss doesn't hand off to a fixed next skill. For most work, just build directly from there; for a
 multi-step build you want delegated across model-tiered subagents, go to
@@ -399,7 +400,7 @@ doruk-ai-harness/
 │   ├── plugin.json               # the doruk-ai-harness plugin (bundles all skills)
 │   └── marketplace.json          # single-plugin marketplace for /plugin
 ├── skills/
-│   ├── workflow/                 # discuss  (the headline)
+│   ├── workflow/                 # discuss (the headline) · prove-it
 │   ├── state-memory/             # handoff · feature-roadmap · feature-organize · wrap
 │   ├── delegation/               # codex · gemini-delegate · orchestrate · worktree-init · worktree-lifecycle
 │   ├── understanding/            # explain-diff-html (third-party, imported verbatim — see PROVENANCE.md)

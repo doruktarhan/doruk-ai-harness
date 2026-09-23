@@ -359,6 +359,12 @@
         <p>Open, divergent riffing to find the shape of a task. Holds the gate: hands to <code>align</code> only when you say so.</p>
         <div class="open-hint">→ open</div>
       </div>
+      <div class="card" data-skill="prove-it">
+        <div class="kname">prove-it</div>
+        <div class="krole">verify — model-invoked</div>
+        <p>Exercises a just-built feature through its real entry point and leaves a rerunnable check plus evidence. The agent reaches for it on its own before writing tests or declaring the feature done.</p>
+        <div class="open-hint">→ open</div>
+      </div>
       <div class="card" data-skill="align">
         <div class="kname">align</div>
         <div class="krole">beat 2 — converge</div>
@@ -596,6 +602,24 @@ const SKILLS = {
     ],
     trigger: "Triggers: /discuss · \"let's discuss\" · \"let's kick this around\" · \"riff with me\"",
     path: "skills/workflow/discuss/SKILL.md"
+  },
+  "prove-it": {
+    role: "workflow · verify",
+    name: "prove-it",
+    lead: "A feature counts as done when it has run through its real entry point, the UI, CLI, API, or the skill itself, not a mock of it, and left something repeatable behind. The repo's own test conventions win over anything here.",
+    sections: [
+      { h: "Pick the check", items: [
+        "Complex or integrated feature → an end-to-end check through the entry point; launching the app is the agent's own problem to solve (the bundled <code>run</code> skill knows common patterns if it's installed).",
+        "Genuinely standalone logic (parsers, math, state machines) → isolated tests, with the ways it can fail listed before any test code is written." ] },
+      { h: "Leave the artifact", items: [
+        "A script or command that reruns the check, saved where the repo keeps such things (its test dir, <code>scripts/</code>, or a Makefile/justfile target) — one-off shell history doesn't count.",
+        "The evidence from running it: captured output, a screenshot, or a recording, stored next to the script or in the feature's scratch folder." ] },
+      { h: "Done means", items: [
+        "The check passed through the real entry point, and the reply gives the artifact path plus the exact rerun command.",
+        "If the check fails, fix the feature and rerun; if it can't be exercised end to end, say why and what was proven instead." ] }
+    ],
+    trigger: "Model-invoked, not a slash command — the agent loads it on its own when it's about to write or plan tests for a feature it built, or before declaring such a feature done.",
+    path: "skills/workflow/prove-it/SKILL.md"
   },
   align: {
     role: "workflow · beat 2 — converge",
