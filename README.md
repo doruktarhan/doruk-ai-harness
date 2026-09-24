@@ -14,8 +14,8 @@ an outcome into something a human can actually absorb.
 [Meta](#5-meta-skillsmeta) · [Jev Browser](#6-jev-browser--separate-repo-new) ·
 [Install](#install) · [Demo](#see-it-in-motion--demo-app) · [Showcase page](web/index.html)
 
-> **New: [`jev-browser`](https://github.com/doruktarhan/jev-browser)**, a skill plus CLI I built so an
-> agent can hand a whole "find this on a website" goal to a browser action model in **one call**. In a
+> **New: [`jev-browser`](https://github.com/doruktarhan/jev-browser)**, a skill plus a CLI I adapted
+> from Cline's Jev integration, so an agent can hand a whole "find this on a website" goal to a browser action model in **one call**. In a
 > 72-run benchmark against Playwright MCP it used **30% fewer agent tokens overall, and about half on
 > heavy pages**. [Details ↓](#6-jev-browser--separate-repo-new)
 
@@ -273,7 +273,8 @@ Skills about how the other skills — and any instructions fed to a frontier mod
 ## 6. Jev Browser · separate repo, new
 
 **[`doruktarhan/jev-browser`](https://github.com/doruktarhan/jev-browser)**: a skill plus the `jb`
-CLI I built. The agent hands a whole "find / open / fill this on a website" goal to **Jev**, TypeSafe
+CLI, which I extracted from [Cline](https://github.com/cline/cline)'s Jev integration (Apache-2.0)
+and rebuilt as a standalone tool any coding agent can call. The agent hands a whole "find / open / fill this on a website" goal to **Jev**, TypeSafe
 AI's browser-action model, in one call, and gets back a small JSON summary and a screenshot. It lives
 in its own repo, with its own install and a full benchmark.
 

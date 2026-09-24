@@ -16,6 +16,10 @@ page in [`web/`](web/) are my own work, designed and written by me (Doruk Tarhan
   isn't.
 - **`gemini-delegate`** orchestrates the **Google Gemini CLI** the same way — mine is the skill, not
   the CLI.
+- **`jev-browser`** now lives in its own repo ([doruktarhan/jev-browser](https://github.com/doruktarhan/jev-browser)).
+  Its `jb` CLI was extracted from [Cline](https://github.com/cline/cline)'s Jev integration
+  (Apache-2.0) and rebuilt as a standalone tool. The Jev model is TypeSafe AI's. That repo's
+  README credits both in full.
 - **`skills/understanding/explain-diff-html`** is imported verbatim from a
   [gist by Geoffrey Litt](https://gist.github.com/geoffreylitt/a29df1b5f9865506e8952488eac3d524) —
   packaged as a Claude Code skill, prompt unchanged.
