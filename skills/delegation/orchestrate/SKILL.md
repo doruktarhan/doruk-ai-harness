@@ -62,7 +62,7 @@ executors, not every spawn. Set `model` explicitly on every spawn; never default
 
 ## Codex
 
-Labor is `gpt-5.6-luna` at max effort in `workspace-write`; reviews are `gpt-5.6-sol` or
+Labor is `gpt-6-luna` at max effort in `workspace-write`; reviews are `gpt-6-sol` or
 `gpt-6-astra` at medium in `read-only`. Pin `-m` on every `codex exec`, or it takes whatever
 `~/.codex/config.toml` was last set to. Luna executors are Bash processes, so the
 persistent-agent rules below do not reach them and `codex exec resume` is weak — route

@@ -50,10 +50,10 @@ Run via the Bash tool:
 
 ```bash
 cd <project-root>
-codex exec -m gpt-5.6-sol -c model_reasoning_effort="medium" --sandbox read-only "<constructed-prompt>" < /dev/null
+codex exec -m gpt-6-sol -c model_reasoning_effort="medium" --sandbox read-only "<constructed-prompt>" < /dev/null
 ```
 
-**Model pin is mandatory.** `-m gpt-5.6-sol` — routine reviews run on Sol (default), never Luna, and never a
+**Model pin is mandatory.** `-m gpt-6-sol` — routine reviews run on Sol (default), never Luna, and never a
 smaller tier (heavyweight work escalates UP to Astra, see below). A weak
 reviewer is false confidence, so this is never dialled down to a smaller tier; the dial is effort, not
 model: `medium` default, `-c model_reasoning_effort="high"` for very complex or open-ended work. Never
@@ -90,13 +90,13 @@ If the prompt is long, write it to a temp file and read it back as the argument:
 cat > /tmp/codex_prompt.txt <<'PROMPT_EOF'
 <the prompt>
 PROMPT_EOF
-codex exec -m gpt-5.6-sol -c model_reasoning_effort="medium" --sandbox read-only "$(cat /tmp/codex_prompt.txt)" < /dev/null
+codex exec -m gpt-6-sol -c model_reasoning_effort="medium" --sandbox read-only "$(cat /tmp/codex_prompt.txt)" < /dev/null
 ```
 
 For long-running reviews invoke in the background and poll the output file:
 
 ```bash
-( codex exec -m gpt-5.6-sol -c model_reasoning_effort="medium" --sandbox read-only "$(cat /tmp/codex_prompt.txt)" \
+( codex exec -m gpt-6-sol -c model_reasoning_effort="medium" --sandbox read-only "$(cat /tmp/codex_prompt.txt)" \
     < /dev/null > /tmp/codex_out.txt 2>&1 ) &
 PID=$!
 for i in $(seq 1 480); do

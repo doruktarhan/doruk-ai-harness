@@ -54,7 +54,7 @@ Luna's job, see [implementer.md](implementer.md).
 
 | Model | Use for |
 |-------|---------|
-| `gpt-5.6-sol` | Ordinary code review, routine diff gates, small or constrained changes. |
+| `gpt-6-sol` | Ordinary code review, routine diff gates, small or constrained changes. |
 | `gpt-6-astra` | Big architectural changes (new subsystem, cross-cutting refactor, a frozen API contract), backend builds (services, data layers, migrations, auth, concurrency, money or persistence in the blast radius), complex open-classification specs. |
 
 The pin is mandatory: `~/.codex/config.toml` defaults to Luna, so an unpinned review silently
@@ -69,7 +69,7 @@ reject it with "requires a newer version of Codex".
 
 ```bash
 cd <project-root>
-codex exec -m gpt-5.6-sol -c model_reasoning_effort="medium" --sandbox read-only "<prompt>" < /dev/null
+codex exec -m gpt-6-sol -c model_reasoning_effort="medium" --sandbox read-only "<prompt>" < /dev/null
 ```
 
 `< /dev/null` closes stdin. Per `codex exec --help`, a piped stdin plus a prompt argument makes
@@ -83,13 +83,13 @@ Long prompts go through a temp file, passed as an argument (not piped):
 cat > /tmp/codex_prompt.txt <<'PROMPT_EOF'
 <prompt>
 PROMPT_EOF
-codex exec -m gpt-5.6-sol -c model_reasoning_effort="medium" --sandbox read-only "$(cat /tmp/codex_prompt.txt)" < /dev/null
+codex exec -m gpt-6-sol -c model_reasoning_effort="medium" --sandbox read-only "$(cat /tmp/codex_prompt.txt)" < /dev/null
 ```
 
 Long reviews run in the background with polling:
 
 ```bash
-( codex exec -m gpt-5.6-sol -c model_reasoning_effort="medium" --sandbox read-only "$(cat /tmp/codex_prompt.txt)" \
+( codex exec -m gpt-6-sol -c model_reasoning_effort="medium" --sandbox read-only "$(cat /tmp/codex_prompt.txt)" \
     < /dev/null > /tmp/codex_out.txt 2>&1 ) &
 PID=$!
 for i in $(seq 1 480); do

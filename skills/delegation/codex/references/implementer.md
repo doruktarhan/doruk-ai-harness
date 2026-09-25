@@ -68,7 +68,7 @@ implement the fix, leave a comment at the fix site explaining the cause, run the
 
 ```bash
 cd .codex-worktree
-codex exec -m gpt-5.6-luna -c model_reasoning_effort="max" --sandbox workspace-write "<prompt>" < /dev/null
+codex exec -m gpt-6-luna -c model_reasoning_effort="max" --sandbox workspace-write "<prompt>" < /dev/null
 ```
 
 Labor runs on Luna at max effort. The pin is mandatory: `~/.codex/config.toml` inherits whatever
@@ -89,13 +89,13 @@ Long prompts go through a temp file, passed as an argument (not piped):
 cat > /tmp/codex_task.txt <<'PROMPT_EOF'
 <prompt>
 PROMPT_EOF
-codex exec -m gpt-5.6-luna -c model_reasoning_effort="max" --sandbox workspace-write "$(cat /tmp/codex_task.txt)" < /dev/null
+codex exec -m gpt-6-luna -c model_reasoning_effort="max" --sandbox workspace-write "$(cat /tmp/codex_task.txt)" < /dev/null
 ```
 
 Long runs go in the background with polling:
 
 ```bash
-( cd .codex-worktree && codex exec -m gpt-5.6-luna -c model_reasoning_effort="max" --sandbox workspace-write "$(cat /tmp/codex_task.txt)" \
+( cd .codex-worktree && codex exec -m gpt-6-luna -c model_reasoning_effort="max" --sandbox workspace-write "$(cat /tmp/codex_task.txt)" \
     < /dev/null > /tmp/codex_out.txt 2>&1 ) &
 PID=$!
 for i in $(seq 1 480); do

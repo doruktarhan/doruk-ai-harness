@@ -71,9 +71,9 @@ explicitly.
 
 ```bash
 # labor  → codex-task-delegator
-codex exec -m gpt-5.6-luna -c model_reasoning_effort="max" --sandbox workspace-write "<order>" < /dev/null
+codex exec -m gpt-6-luna -c model_reasoning_effort="max" --sandbox workspace-write "<order>" < /dev/null
 # review → codex-feedback-planning
-codex exec -m gpt-5.6-sol  -c model_reasoning_effort="medium" --sandbox read-only "<order>" < /dev/null
+codex exec -m gpt-6-sol  -c model_reasoning_effort="medium" --sandbox read-only "<order>" < /dev/null
 # heavyweight review (codex-cli 0.153.4+)
 codex exec -m gpt-6-astra  -c model_reasoning_effort="medium" --sandbox read-only "<order>" < /dev/null
 ```
