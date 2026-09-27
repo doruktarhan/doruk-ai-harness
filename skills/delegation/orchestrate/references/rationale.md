@@ -48,6 +48,22 @@ produce input material such as probe logs and field dumps, never the skill text.
 - A retiring agent's successor note exists because the coordinator's own record is too
   distilled to reconstruct a build's decisions, file map, gotchas, and dead ends.
 
+## Splitting big work — the 2026-09-27 incident
+
+Designing an event-driven trading engine (polymarket-window, feature 16):
+
+- Two spec agents briefed "read all of this, then design the whole thing" reached 485k and
+  430k tokens, mostly from reading before writing. A research scout given seven questions
+  in one brief ran 30 minutes to 331k.
+- What worked afterwards: a short global plan with named pieces and exact seams; one small
+  reviewer per piece, each given only its sections and `file:line` anchors. Six such reviews
+  finished in about 8 minutes and found far more than one whole-document review.
+- A separate consistency check read only the document and looked only at the seams between
+  pieces. The coordinator kept the global picture and did not read the piece inputs itself.
+- Doruk: "We shouldn't be delegating everything with: this is the whole code base, just go
+  through it and design." He wants it as coordinator judgment, not a strict rule: small or
+  tightly coupled work stays with one agent.
+
 ## Known future upgrades (not built)
 
 - A tmux-backed control layer giving Codex executors real session continuity.
