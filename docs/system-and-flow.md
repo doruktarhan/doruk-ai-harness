@@ -1,17 +1,18 @@
 # System & Flow — how a unit of work moves through the harness
 
-The heart of the harness is a **workflow**: a task starts as a loose idea in `discuss`, then
-either gets built directly or handed to `orchestrate` for a delegated, model-tiered build,
+The heart of the harness is a **workflow**: a task starts as a loose idea in `discuss`, gets its
+design decisions pinned down in `align`, then either gets built directly or handed to
+`orchestrate` for a delegated, model-tiered build,
 with code quality reviewed by **multiple models from different viewpoints** on anything that
 goes through orchestrate, so the version that lands is the highest-quality one, not the
 first that compiles.
 
 ```
-   DISCUSS  ─▶  build directly, or ORCHESTRATE
-   (diverge)     (model-tiered build + multi-model review gates)
-        │                    │
-        └────────────────────┘
-         human in the loop at every decision
+   DISCUSS  ─▶  ALIGN  ─▶  build directly, or ORCHESTRATE
+   (diverge)    (converge)  (model-tiered build + multi-model review gates)
+        │                              │
+        └──────────────────────────────┘
+          human in the loop at every decision
 ```
 
 Everything else in the harness exists to serve that workflow: a **state & memory** layer
@@ -22,9 +23,9 @@ first.
 
 ---
 
-## The workflow — discuss, then build
+## The workflow — discuss, align, then build
 
-`discuss` is the harness's one workflow skill: **loose, divergent, thinking-out-loud**
+`discuss` is the divergent beat: **loose, divergent, thinking-out-loud**
 exploration — the opposite of interrogation. The agent acts like a sharp colleague: it
 brings opinions, proposes ideas, names tradeoffs, pokes at assumptions, and pushes back when
 it thinks the user is wrong, all in short turns rather than one big funnel. The goal is to
@@ -33,12 +34,22 @@ find the *shape* of the thing.
 What discuss deliberately does **not** do: converge on a fixed spec, write a plan, or write
 code. It orients briefly on any existing state/handoff context (active or paused threads, a
 relevant feature's orientation block) if a `.doruk/` layer exists, then just discusses. Once
-the shape has genuinely converged and only a handful of concrete decisions remain, it may
-offer a short structured-question round — 2–4 questions via Claude Code's
-`AskUserQuestion` tool, each carrying a recommended answer, asked as one batch rather than
-back-and-forth grilling.
+the shape converges, it offers `align`.
 
-Discuss does not hand off to a fixed next skill. When the shape feels settled:
+`align` is the convergent beat, built on Matt Pocock's `grilling` method. The plan is a
+**design tree**: every decision branches into the decisions that hang off it, and the agent
+asks only the *frontier* — decisions whose prerequisites are already settled. Every question
+carries a recommended answer worded so "yes" accepts it. Facts are the agent's job (look it
+up, or dispatch a sub-agent and keep asking what doesn't depend on it); decisions are the
+user's. On top of that method: the agent asks once, up front, which **pace** the user wants —
+*one by one*, a single self-contained question per turn with its own 1–2 lines of context
+and one line on why it's asked, or *bulk rounds*, the whole frontier numbered in one turn —
+plus a soft/hard depth knob and a brainstorm-first turn when the idea is still vague. It is
+done when the frontier is empty and the user confirms shared understanding; it then
+summarizes the decisions and offers to write them into the feature's `handoff.md` or
+`roadmap.md`.
+
+Align does not hand off to a fixed next skill. When the decisions are pinned:
 
 - For most work, build it directly in the session.
 - For a big, multi-step build the user wants delegated across subagents, `orchestrate`
@@ -51,13 +62,13 @@ Discuss does not hand off to a fixed next skill. When the shape feels settled:
 - If the repo uses a session-handoff ritual and the work is about to span sessions, run that
   first.
 
-> **Legacy.** Earlier versions ran a scripted `discuss → align → ship` pipeline: `align`
-> interrogated one question at a time to converge on a design, and `ship` then drove a
-> spec → cross-model review → plan → simplification → execute → PR loop that composed the
-> third-party `superpowers` collection. That scaffolding was built for pre-Fable models that
-> needed it; with Fable 5.1 / Opus 5 class models, `align`'s job folded into `discuss` as the
-> optional structured-question round above, and `ship`'s job is now planning and delegating
-> directly through `orchestrate`. Both are kept for reference, unindexed, in
+> **Legacy.** Earlier versions ran a scripted `discuss → align → ship` pipeline, where `ship`
+> drove a spec → cross-model review → plan → simplification → execute → PR loop that composed
+> the third-party `superpowers` collection. That scaffolding was built for pre-Fable models
+> that needed it; with Fable 5.1 / Opus 5 class models, `ship`'s job is now planning and
+> delegating directly through `orchestrate`, and the original `align` was retired, briefly
+> folded into `discuss`, then rebuilt as today's `skills/workflow/align`. `ship` is kept for
+> reference, unindexed, in
 > [`skills/legacy/`](../skills/legacy/README.md). The rationale — and the rules for writing
 > lean instructions generally — live in
 > [`skills/meta/lean-instructions`](../skills/meta/lean-instructions/SKILL.md), derived from

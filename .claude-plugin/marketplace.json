@@ -4,14 +4,14 @@
     "name": "Doruk Tarhan"
   },
   "metadata": {
-    "description": "Doruk's AI coding harness for Claude Code — discuss to find a task's shape, then build directly or hand a multi-step build to orchestrate, backed by a committed .doruk/ state & memory layer and cross-model delegation (Codex, Gemini) in isolated git worktrees.",
+    "description": "Doruk's AI coding harness for Claude Code — discuss to find a task's shape, align to pin down the decisions, then build directly or hand a multi-step build to orchestrate, backed by a committed .doruk/ state & memory layer and cross-model delegation (Codex, Gemini) in isolated git worktrees.",
     "version": "3.0.0"
   },
   "plugins": [
     {
       "name": "doruk-ai-harness",
       "source": "./",
-      "description": "12 skills across five category dirs — workflow (discuss: find the shape before building), state-memory (handoff, feature-roadmap, feature-organize, wrap), delegation (codex, gemini-delegate, orchestrate, worktree-init, worktree-lifecycle), understanding (explain-diff-html, a third-party skill imported verbatim — see PROVENANCE.md), and meta (lean-instructions: rules for writing lean instructions for frontier models). Every leaf is declared in the plugin's skills[] manifest, so /plugin install loads all 12 natively even though they live under category subdirs (skills/<block>/<name>/). skills/legacy/ keeps the superseded pre-Fable pipeline for reference — not in this manifest, not installed. install.sh stays as an offline / non-Claude-Code fallback that flattens every leaf into ~/.claude/skills/."
+      "description": "14 skills across five category dirs — workflow (discuss: find the shape before building; align: pin down every design decision; prove-it: verify through the real entry point), state-memory (handoff, feature-roadmap, feature-organize, wrap), delegation (codex, gemini-delegate, orchestrate, worktree-init, worktree-lifecycle), understanding (explain-diff-html, a third-party skill imported verbatim — see PROVENANCE.md), and meta (lean-instructions: rules for writing lean instructions for frontier models). Every leaf is declared in the plugin's skills[] manifest, so /plugin install loads all 14 natively even though they live under category subdirs (skills/<block>/<name>/). skills/legacy/ keeps the superseded pre-Fable pipeline for reference — not in this manifest, not installed. install.sh stays as an offline / non-Claude-Code fallback that flattens every leaf into ~/.claude/skills/."
     }
   ]
 }

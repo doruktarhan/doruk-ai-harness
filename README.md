@@ -1,8 +1,9 @@
 # doruk-ai-harness
 
 **A coding harness for Claude Code, built as a system — not a pile of skills.**
-Work starts in `discuss`: loose, opinionated exploration to find a task's shape, with an optional
-structured-question round to pin down what's left. From there you build directly, or hand a
+Work starts in `discuss`: loose, opinionated exploration to find a task's shape. `align` then pins
+down every open design decision as a design-tree interview, each question carrying a recommended
+answer, at the pace you pick (one at a time, or whole rounds). From there you build directly, or hand a
 multi-step build to `orchestrate`, which delegates every unit of work to model-tiered subagents and
 gates the design and the final diff with a genuinely different model, so what lands is always the
 highest-quality version. Three supporting blocks back it: a committed `.doruk/` **state & memory**
@@ -49,8 +50,9 @@ it away with zero risk to the main branch.
 OpenAI's September 2026 post *"Rethinking skills and prompts for GPT-6 Astra"* argues that
 scaffolding built to babysit a weaker model — broad triggers, mandatory pre-reads, CAUTION/NEVER
 language — slows a frontier model down: it competes for triggers, gets read unneeded, and makes an
-aligned model stop to ask instead of just doing the work. v3 applies that here: `align` folded into
-`discuss` as an optional round, the two Codex skills merged into `codex`, and `ship`'s scripted
+aligned model stop to ask instead of just doing the work. v3 applies that here: `align` was rebuilt
+lean on Matt Pocock's `grilling` method (briefly folded into `discuss` in between), the two Codex
+skills merged into `codex`, and `ship`'s scripted
 pipeline — built for pre-Fable models, dependent on the now-disabled `superpowers` plugin — is
 superseded by `orchestrate`. Rules live in [`skills/meta/lean-instructions`](skills/meta/lean-instructions);
 superseded skills stay in [`skills/legacy/`](skills/legacy/README.md).
@@ -66,11 +68,13 @@ committed `.doruk/` state folder. The diagram below is the canonical view (also 
 ```mermaid
 flowchart TB
     subgraph WF["WORKFLOW · find the shape first (skills/workflow/)"]
-        D["<b>discuss</b><br/><i>loose, opinionated exploration,<br/>optional structured-question round</i>"]
+        D["<b>discuss</b><br/><i>loose, opinionated exploration<br/>to find the shape</i>"]
+        A["<b>align</b><br/><i>design-tree interview, every question<br/>with a recommended answer</i>"]
+        D ==>|"shape found"| A
     end
 
     BUILD["build directly, or hand off to ORCHESTRATE<br/>model-tiered build + design/diff review gated by a different model"]
-    D ==>|"shape found"| BUILD
+    A ==>|"decisions pinned"| BUILD
 
     subgraph SM["STATE &amp; MEMORY · the committed .doruk/ layer (skills/state-memory/)"]
         direction TB
@@ -97,7 +101,7 @@ flowchart TB
     classDef hitl fill:#b45309,stroke:#92400e,color:#fffbeb;
     classDef sm fill:#0e7490,stroke:#155e75,color:#f0fdff;
     classDef dg fill:#7c3aed,stroke:#5b21b6,color:#faf5ff;
-    class D wf;
+    class D,A wf;
     class BUILD hitl;
     class SM1,SM2,SM3,SM4 sm;
     class DG1,DG2,DG3,DG4,DG5 dg;
@@ -116,14 +120,15 @@ interactive, click-to-drill page in [`web/index.html`](web/index.html).
 
 ## 1. Workflow — the headline (`skills/workflow/`)
 
-Two skills: find the shape of a task before building it, then prove the result actually works before calling it done (`prove-it` is model-invoked, not a slash command — the agent reaches for it on its own when it is about to write tests or declare a feature done).
+Three skills: find the shape of a task, pin down its design decisions, then prove the result actually works before calling it done (`prove-it` is model-invoked, not a slash command — the agent reaches for it on its own when it is about to write tests or declare a feature done).
 
 | Skill | Beat | What it does |
 |---|---|---|
-| **`discuss`** | explore | Loose, opinionated exploration *before* committing to a design — the agent brings takes and tradeoffs, not a fixed interrogation, and deliberately holds off on specs, plans, or code. Once the shape has genuinely converged, it may offer a short structured-question round (Claude Code's `AskUserQuestion`, 2–4 questions in one batch, each with a recommended answer) to pin down what's left. |
+| **`discuss`** | explore | Loose, opinionated exploration *before* committing to a design — the agent brings takes and tradeoffs, not a fixed interrogation, and deliberately holds off on specs, plans, or code. Once the shape converges, it offers `align`. |
+| **`align`** | converge | A design-alignment interview built on [Matt Pocock's `grilling`](https://github.com/mattpocock/skills): the plan is a design tree, the agent asks only decisions whose prerequisites are settled, every question carries a recommended answer worded so "yes" accepts it, facts get looked up (or delegated to a sub-agent) instead of asked. What's mine on top: a **pace** asked once up front — *one by one* (each question self-contained with its own context and why, no scrolling back) or *bulk rounds* (the whole frontier per turn) — a soft/hard depth knob, a brainstorm-first turn for vague ideas, and an ending that writes the decisions into the feature's `.doruk/` handoff. |
 | **`prove-it`** | verify | "Done" means exercised through the real entry point (UI, CLI, API, the running skill) with a repeatable artifact left behind: a script that reruns the check plus its output, screenshot, or recording. End-to-end for complex features; isolated tests only for genuinely standalone logic, and those list failure modes before code. The repo's own test conventions win. It's adapted from a popular set of absolute testing rules ("never write unit tests after code," "E2E as the sole mechanism") and deliberately rewritten as defaults instead of absolutes, per [`lean-instructions`](skills/meta/lean-instructions) — absolutes make capable models rigid where a rule doesn't fit. |
 
-Discuss doesn't hand off to a fixed next skill. For most work, just build directly from there; for a
+Align doesn't hand off to a fixed next skill. For most work, just build directly from there; for a
 multi-step build you want delegated across model-tiered subagents, go to
 [`orchestrate`](#3-delegation-skillsdelegation). Quality on a delegated build isn't a separate
 pipeline stage — it's built into `orchestrate`'s review gates: a *genuinely different* model (Codex
@@ -347,7 +352,7 @@ The harness also ships as a Claude Code **plugin**, served from its own single-p
 - The second installs the `doruk-ai-harness` plugin
   ([`.claude-plugin/plugin.json`](.claude-plugin/plugin.json)).
 
-> **All 13 skills load natively.** The skills live under category subdirectories
+> **All 14 skills load natively.** The skills live under category subdirectories
 > (`skills/<block>/<name>/`), and each leaf is declared explicitly in the plugin's
 > [`skills[]` manifest](.claude-plugin/plugin.json). Claude Code reads that manifest, so the plugin
 > route picks up every skill without flattening — no reliance on subdirectory recursion.
@@ -391,12 +396,12 @@ doruk-ai-harness/
 │   ├── plugin.json               # the doruk-ai-harness plugin (bundles all skills)
 │   └── marketplace.json          # single-plugin marketplace for /plugin
 ├── skills/
-│   ├── workflow/                 # discuss (the headline) · prove-it
+│   ├── workflow/                 # discuss (the headline) · align · prove-it
 │   ├── state-memory/             # handoff · feature-roadmap · feature-organize · wrap
 │   ├── delegation/               # codex · gemini-delegate · orchestrate · worktree-init · worktree-lifecycle
 │   ├── understanding/            # explain-diff-html (third-party, imported verbatim — see PROVENANCE.md)
 │   ├── meta/                     # lean-instructions
-│   └── legacy/                   # align · ship · codex-feedback-planning · codex-task-delegator — reference only, not installed
+│   └── legacy/                   # ship · codex-feedback-planning · codex-task-delegator — reference only, not installed
 ├── docs/                         # system-and-flow, memory-system, diagram
 ├── demo-app/                     # worked example: a real .doruk/ mid-flight
 └── web/index.html                # interactive showcase (GitHub Pages)
@@ -407,7 +412,8 @@ doruk-ai-harness/
 ## License & attribution
 
 MIT — see [`LICENSE`](LICENSE). These are my own skills, built for Claude Code, except
-`skills/understanding/explain-diff-html` ([external, credit Geoffrey Litt](https://gist.github.com/geoffreylitt/a29df1b5f9865506e8952488eac3d524)).
+`skills/understanding/explain-diff-html` ([external, credit Geoffrey Litt](https://gist.github.com/geoffreylitt/a29df1b5f9865506e8952488eac3d524))
+and the interview method inside `skills/workflow/align` ([Matt Pocock's `grilling`](https://github.com/mattpocock/skills), MIT).
 The delegation skills orchestrate external CLIs I did not build (OpenAI Codex, Google Gemini), and
 `skills/legacy/ship` composed the third-party *superpowers* collection (now disabled) before it was
 superseded by `orchestrate`. Full honesty on what's mine and what isn't: [`PROVENANCE.md`](PROVENANCE.md).

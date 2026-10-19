@@ -4,7 +4,8 @@ Honest accounting of what's mine and what isn't.
 
 ## What's mine
 
-Every skill in [`skills/`](skills/) — except `skills/understanding/explain-diff-html` — plus the
+Every skill in [`skills/`](skills/) — except `skills/understanding/explain-diff-html` and the
+method inside `skills/workflow/align` — plus the
 architecture in [`docs/`](docs/), the worked example in [`demo-app/`](demo-app/), and the showcase
 page in [`web/`](web/) are my own work, designed and written by me (Doruk Tarhan) for Claude Code.
 
@@ -20,6 +21,11 @@ page in [`web/`](web/) are my own work, designed and written by me (Doruk Tarhan
   Its `jb` CLI was extracted from [Cline](https://github.com/cline/cline)'s Jev integration
   (Apache-2.0) and rebuilt as a standalone tool. The Jev model is TypeSafe AI's. That repo's
   README credits both in full.
+- **`skills/workflow/align`** is built on [Matt Pocock's `grilling` skill](https://github.com/mattpocock/skills)
+  (MIT): the design tree, the frontier of askable decisions, the ❓/➡️ round format and
+  "facts are the agent's job, decisions are the user's" are his. The pace setting (one by
+  one vs bulk rounds), the soft/hard depth knob, the brainstorm-first turn and the `.doruk/`
+  ending are mine.
 - **`skills/understanding/explain-diff-html`** is imported verbatim from a
   [gist by Geoffrey Litt](https://gist.github.com/geoffreylitt/a29df1b5f9865506e8952488eac3d524) —
   packaged as a Claude Code skill, prompt unchanged.

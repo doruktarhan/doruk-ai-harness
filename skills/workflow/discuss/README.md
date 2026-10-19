@@ -1,6 +1,7 @@
 # discuss — divergent exploration before you lock a design
 
-The first beat of my `discuss → align → ship` workflow. A loose, opinionated mode where the
+The first beat of my workflow: `discuss` finds the shape, `align` pins down the decisions,
+then I build directly or hand the work to `orchestrate`. A loose, opinionated mode where the
 agent riffs WITH me across short turns to find the *shape* of a task, before any spec, plan,
 or code exists.
 
@@ -15,8 +16,8 @@ or code exists.
   turns, not fired one at a time.
 - **Holds the gate** — it refuses to write a spec, plan, or code while we are still exploring.
   If I drift toward "just build it," it reminds me we are still in discuss.
-- **Hands off cleanly** — only when I explicitly say so, it summarizes what we landed on in
-  4–8 lines and passes that into the `align` skill so I never repeat myself.
+- **Offers `align` once the shape converges** — one line, no hand-off ritual. Then I decide
+  what's next: build it directly, or `orchestrate` for a big delegated build.
 
 ## Why I built it
 
@@ -25,16 +26,12 @@ That is the worst time to converge: I have not figured out what I actually want 
 agent locks onto the first interpretation it can defend. Premature convergence quietly bakes
 in the wrong shape, and everything downstream inherits it.
 
-So I split the front of my workflow into three explicit beats. **discuss** is the divergent
-one: its whole job is to stay open and find the shape with me. **align** is where I get
-grilled one question at a time until a design is pinned down. **ship** drives that pinned
-design to a review-ready change with quality gates. Keeping these separate means the
-divergent thinking actually happens instead of getting steamrolled by an eager planner, and
-the convergent thinking happens deliberately rather than by accident.
-
-The handoff is the part I care most about. When the shape feels decided, discuss does not
-just stop — it distills what we agreed into a short summary and feeds it straight into
-`align`, so the grilling phase starts already knowing the context.
+So I split the front of my workflow into two explicit beats. **discuss** is the divergent
+one: its whole job is to stay open and find the shape with me. **align** is the convergent
+one: a design-tree interview, every question with a recommended answer, until the design is
+pinned down. Keeping these separate means the divergent thinking actually happens instead of
+getting steamrolled by an eager planner, and the convergent thinking happens deliberately
+rather than by accident.
 
 ## How to use it
 
@@ -43,10 +40,9 @@ just stop — it distills what we agreed into a short summary and feeds it strai
 2. At the start of a task, run `/discuss` — optionally with a topic, e.g.
    `/discuss the caching layer for the import job`.
 3. Riff. Disagree with it, let it disagree with you, chase alternatives.
-4. When the shape feels right, say "let's align" (or "grill me", "lock it in"). It will
-   summarize and hand off to the `align` skill.
+4. When the shape feels right, say "lets align" (or "grill me"), or accept the offer. `align`
+   takes over from there.
 
-It pairs with the `align` and `ship` skills in this collection, but it stands alone: if
-`align` is not installed, discuss falls back to running a focused one-question-at-a-time
-alignment itself. It also works with or without a `.doruk/`-style state layer — orientation
-is a bonus, not a requirement.
+It pairs with the `align` skill in this collection, but it stands alone: without `align`,
+just build from where the discussion lands. It also works with or without a `.doruk/`-style
+state layer — orientation is a bonus, not a requirement.

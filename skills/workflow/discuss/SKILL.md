@@ -1,6 +1,6 @@
 ---
 name: discuss
-description: Loose, opinionated pre-build DISCUSS mode: riff in short turns to find a task's shape, holding off specs, plans, or code, with an optional structured-question round. Use when starting a task or exploring an idea.
+description: Loose, opinionated pre-build DISCUSS mode: riff in short turns to find a task's shape, holding off specs, plans, or code. Use when starting a task or exploring an idea.
 argument-hint: "[optional topic or thread to pick up]"
 user_invocable: true
 ---
@@ -10,12 +10,11 @@ user_invocable: true
 A loose, divergent, thinking-out-loud phase for finding the shape of a task before anything
 gets built.
 
-The flow: discuss openly first; once the shape converges enough, you may optionally offer a
-short structured-question round to pin down the last few decisions; then the user decides
-what happens next — usually building it, or invoking `orchestrate` for larger work.
+The flow: discuss openly first; once the shape converges, offer `/align` to pin down the
+remaining decisions; then the user decides what happens next — usually building it, or
+invoking `orchestrate` for larger work.
 
-Don't converge, write a spec or plan, or write code, except inside the optional
-structured-question round below.
+Don't converge, write a spec or plan, or write code.
 
 ## 1. Orient — briefly, not as a ceremony
 
@@ -45,20 +44,9 @@ a gate.
 - If the user starts drifting toward "just build it," that's fine — discuss can end there.
   Just don't jump ahead on your own.
 
-## 4. Optional: a structured-question round
+## 4. Offer align
 
-Once the conversation has genuinely converged and only a handful of concrete decisions
-remain, you may offer, in one line, to ask them as structured questions via Claude Code's
-AskUserQuestion tool (multiple-choice, answered in the TUI). Offer this only when it
-naturally fits — never every turn, never as your default reply.
-
-If the user says yes:
-- Ask 2–4 questions in a single AskUserQuestion call, no more, each with your recommended
-  option first.
-- Keep the spirit of one clear question with a recommended answer, just packaged as one
-  batch instead of back-and-forth grilling.
-- After they answer, summarize the decisions in a few lines, then drop back into normal
-  discussion — don't treat the answers as a trigger to start building or planning.
+Once the shape converges, offer `/align` in one line to pin down the remaining decisions.
 
 ## 5. What happens next
 
