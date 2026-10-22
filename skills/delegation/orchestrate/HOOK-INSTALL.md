@@ -33,3 +33,19 @@ Remove the `SessionStart` block above from `~/.claude/settings.json`.
 - By design, not a bug: a stale `--model` argv surviving a `/clear` or `/compact` can
   re-emit the old pointer. Kept intentionally — losing pointer re-injection right after a
   context wipe (where it's most useful) is a worse trade than a rare stale soft pointer.
+
+# Installing the foreman-hook
+
+`PreToolUse` hook on the `Agent` tool: when a spawn's model is Fable or Opus and its prompt
+opens with no `Role:` line, prepends the foreman role line to the prompt via `updatedInput`.
+Silent for Sonnet/Haiku, for `Role: executor.` prompts, and for Explore/Plan/statusline-setup/
+claude-code-guide. Not a `SubagentStart` hook because that event's stdin carries no model and
+no prompt (2.1.303); the header of `foreman-hook.sh` has the measurements. Needs `python3`.
+
+```json
+{ "hooks": { "PreToolUse": [
+  { "matcher": "Agent|Task", "hooks": [
+    { "type": "command", "command": "/Users/you/.claude/skills/orchestrate/foreman-hook.sh", "timeout": 10 }
+  ] }
+] } }
+```

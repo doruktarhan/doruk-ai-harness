@@ -27,11 +27,12 @@ Keyed by ROLE, not model tier; a role names spawn rights only.
 |------|--------|
 | coordinator | Designs, classifies, delegates, reviews, lands. No bulk labor. |
 | executor | Leaf. Does the order, spawns nothing, reports back when blocked rather than improvising. |
-| foreman | Opt-in, granted in the order with a size budget. Owns one build, may spawn Sonnet leaves and run mid-build Codex reviews, cannot spawn another foreman. |
+| foreman | Default for a Fable/Opus spawn, or granted in the order with a size budget. Owns one build, may spawn Sonnet leaves and run mid-build Codex reviews, cannot spawn another foreman. Delegates exploration and labor to Sonnet even in review, design and spec jobs; keeps the verdict, design, spec and final page itself. |
 
-Spawns default to executor; foreman is rare, for a multi-day build handed down at once. Open
-each spawn prompt with its role line; adopt the role your own prompt names, or executor if
-an agent spawned you.
+Spawns default by tier: Fable/Opus spawns are foremen, Sonnet spawns executors.
+`foreman-hook.sh` (PreToolUse on Agent, see `HOOK-INSTALL.md`) prepends the foreman line to a
+Fable/Opus prompt that opens with no role line. Open a spawn prompt with its role line to
+override; adopt the role your own prompt names.
 
 ## Intake classification
 
@@ -67,6 +68,31 @@ Labor is `gpt-6-luna` at max effort in `workspace-write`; reviews are `gpt-6-sol
 `~/.codex/config.toml` was last set to. Luna executors are Bash processes, so the
 persistent-agent rules below do not reach them and `codex exec resume` is weak — route
 iterative work to Sonnet. Invocation lines: `references/rationale.md`.
+
+Every `codex exec` runs through `~/.claude/skills/codex/scripts/codex-run.sh` (stdin closed,
+wall-clock cap, killed if no session id within 120 s), usually as a background Bash. macOS
+has no `timeout`, and the Bash tool's `timeout` is ignored under `run_in_background`. A brief
+that orders a Codex gate names the wrapper, not a bare `codex exec`.
+
+## Waiting
+
+Spawn helpers without `name`. With agent teams on, a named spawn becomes a session teammate
+whose report and done notice go to the coordinator's team inbox, which nobody reads. An
+unnamed helper wakes you when it finishes, and you message it later by the `agentId` its
+spawn result returned.
+
+End a turn to wait only when something will wake you: an unnamed helper you spawned, or a
+background Bash you launched. To wait on anything else (a commit, a file, an agent you did
+not spawn), launch a background waiter with a deadline first, e.g.
+`for i in $(seq 1 60); do git -C <wt> log --oneline -5 | grep -q '<msg>' && break; sleep 30; done`
+as a background Bash. The waiter counts as a waker: its exit wakes you whether the thing
+landed or the deadline passed, and on a passed deadline you report upward rather than
+re-arm. On waking, read the result on disk (git log, files) before acting on a summary.
+
+Coordinator: a foreman stop notice with summary "finished" whose text says it is waiting
+means nothing will wake it. Check its awaited items on disk and message it what landed.
+During an overnight build, schedule `agent-watch.py` (this folder) every 20 minutes and act
+on each line it prints: `references/watchdog.md`.
 
 ## Delegation
 
@@ -105,8 +131,9 @@ This is your call, made per order.
 
 ## Persistent agents
 
-Route by a 2×2: follow-ups, revisions, and questions to the warm agent, messaged rather than
-respawned; new substantial work to a fresh agent, however convenient the warm one looks.
+Route by a 2×2: follow-ups, revisions, and questions to the warm agent, messaged by the
+`agentId` its spawn returned rather than respawned; new substantial work to a fresh agent,
+however convenient the warm one looks.
 Otherwise spawn fresh only for unrelated work or a degraded agent.
 
 - Depth is measured, never guessed: run `depth-gauge.sh <session-dir>` (this folder) before

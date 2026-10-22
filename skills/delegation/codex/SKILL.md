@@ -43,8 +43,18 @@ offer in one line and proceed if the user agrees:
 
 > "Want Codex to review this plan first?" / "Want me to hand this to Codex in a worktree?"
 
-Then read the mode's reference for model pins, invocation patterns, the background-run
-recipe, and troubleshooting:
+Every `codex exec` goes through the wrapper, usually as a background Bash whose exit wakes you:
+
+```bash
+~/.claude/skills/codex/scripts/codex-run.sh MODEL EFFORT SANDBOX WORKDIR PROMPT_FILE OUT [MAX_S=1500] [START_S=120] [QUIET_S=600]
+```
+
+It closes stdin, caps wall time, kills a run with no session id after START_S or no output
+for QUIET_S, prints a heartbeat a minute, and ends OUT with `CODEX_EXIT=<rc>` or
+`CODEX_KILLED=<reason>` (exit 124). macOS has no `timeout`, and the Bash tool's `timeout`
+is ignored under `run_in_background`, so the wrapper is the only cap.
+
+Then read the mode's reference for model pins, the prompt shape, and troubleshooting:
 
 - Consultant: [references/consultant.md](references/consultant.md)
 - Implementer: [references/implementer.md](references/implementer.md)

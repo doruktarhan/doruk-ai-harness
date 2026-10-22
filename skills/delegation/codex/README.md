@@ -28,9 +28,10 @@ scribbling over working files, then reconstructing what changed.
 
 Three things earned a skill rather than a one-off command:
 
-- **The stdin hang.** In a non-interactive shell `codex exec` sits forever at "Reading
+- **The stdin hang.** In a non-interactive shell `codex exec` can sit forever at "Reading
   additional input from stdin..." unless stdin is closed with `< /dev/null`. I lost real time
-  to this. The skill bakes in the fix so I never rediscover it.
+  to this, twice. `scripts/codex-run.sh` now runs every call: stdin closed, a wall-clock cap
+  that works on macOS (which has no `timeout`), and a kill if no session starts within 120 s.
 - **The model pin.** `~/.codex/config.toml` defaults to whatever I last set interactively, so an
   unpinned call silently retiers the work. Reviews pin Sol (Astra for architecture, backend, and
   hard specs); labor pins Luna at max effort.

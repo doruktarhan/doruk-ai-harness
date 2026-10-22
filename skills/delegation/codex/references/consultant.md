@@ -67,44 +67,28 @@ reject it with "requires a newer version of Codex".
 
 ## 4. Invoke
 
-```bash
-cd <project-root>
-codex exec -m gpt-6-sol -c model_reasoning_effort="medium" --sandbox read-only "<prompt>" < /dev/null
-```
-
-`< /dev/null` closes stdin. Per `codex exec --help`, a piped stdin plus a prompt argument makes
-Codex append stdin as a `<stdin>` block, so without the redirect it waits at "Reading
-additional input from stdin..." for an EOF that never comes. A trivial probe can still finish
-because the harness closes stdin on exit; real work hangs at 0% CPU.
-
-Long prompts go through a temp file, passed as an argument (not piped):
+Write the prompt to a file, then run the wrapper as a background Bash; its exit wakes you:
 
 ```bash
 cat > /tmp/codex_prompt.txt <<'PROMPT_EOF'
 <prompt>
 PROMPT_EOF
-codex exec -m gpt-6-sol -c model_reasoning_effort="medium" --sandbox read-only "$(cat /tmp/codex_prompt.txt)" < /dev/null
+~/.claude/skills/codex/scripts/codex-run.sh gpt-6-sol medium read-only <project-root> \
+  /tmp/codex_prompt.txt /tmp/codex_review.txt 1500
 ```
 
-Long reviews run in the background with polling:
+Read `/tmp/codex_review.txt`: the answer, then a last line `CODEX_EXIT=<rc>` or
+`CODEX_KILLED=<reason>`. The header, session id and tool calls are in
+`/tmp/codex_review.txt.log`. On `CODEX_KILLED`, rerun once; if it is killed again, fall back
+to `gpt-6-sol` or split the review.
 
-```bash
-( codex exec -m gpt-6-sol -c model_reasoning_effort="medium" --sandbox read-only "$(cat /tmp/codex_prompt.txt)" \
-    < /dev/null > /tmp/codex_out.txt 2>&1 ) &
-PID=$!
-for i in $(seq 1 480); do
-  kill -0 $PID 2>/dev/null || { echo "exited after ${i}s"; break; }
-  [ $((i % 30)) = 0 ] && echo "  ...running at ${i}s, output bytes=$(wc -c < /tmp/codex_out.txt)"
-  sleep 1
-done
-kill -0 $PID 2>/dev/null && { kill -9 $PID; echo "HUNG — killed at 480s"; }
-tail -250 /tmp/codex_out.txt
-```
+The wrapper closes stdin (`< /dev/null`): a piped stdin plus a prompt argument makes Codex
+append stdin as a `<stdin>` block and wait for an EOF that never comes. It also caps wall
+time at MAX_S (default 1500 s), kills a run with no `session id:` line after 120 s, and
+kills one silent for 600 s. A plain `timeout 900 codex exec …` fails on macOS (no `timeout`
+binary), and the Bash tool's `timeout` is ignored under `run_in_background`.
 
-The redirect attaches to the inner `codex exec`, not the subshell — codex inherits stdin from
-its parent.
-
-Use `--sandbox workspace-write` only when a review genuinely needs to run a build.
+Use `workspace-write` as the SANDBOX argument only when a review genuinely needs to run a build.
 
 ## 5. Report
 
@@ -132,9 +116,12 @@ delegation follows, carry these findings into the implementer prompt under "Know
 | Symptom | Fix |
 |---------|-----|
 | `codex: command not found` | `npm i -g @openai/codex && codex auth` |
-| Hangs at "Reading additional input from stdin...", 0% CPU | stdin not closed — add `< /dev/null` to the codex invocation. Most common failure in non-interactive shells. |
+| `CODEX_KILLED=no session id after 120s` | Codex never started a session (stdin open, or a local startup block). `Reading additional input from stdin...` prints on every run; the missing `session id:` line is the signature. Rerun through the wrapper once. |
+| `timeout: command not found` | macOS ships no `timeout`; the wrapper is the cap. |
+| A background run outlives the Bash `timeout` | That parameter is ignored with `run_in_background`; the wrapper's MAX_S is the cap. |
 | "requires a newer version of Codex" | Astra needs codex-cli 0.153.4+; upgrade or fall back to Sol. |
 | `--full-auto` deprecation warning | Use `--sandbox workspace-write`; same behavior. |
-| Prompt too long | Temp file plus `"$(cat …)"` — codex needs the prompt as an argument, not on a pipe. |
-| Review times out | Split into focused questions, e.g. "review only the migration". |
+| Prompt too long | The wrapper passes the prompt file as one argument (codex needs it as an argument, not on a pipe); macOS caps arguments near 1 MB, so point Codex at files to read instead of pasting them. |
+| Two runs clobber each other | Use one prompt and one OUT path per run (your scratchpad or `mktemp`), not the fixed `/tmp` names in the examples. |
+| `CODEX_KILLED=over 1500s wall clock` | Split into focused questions, e.g. "review only the migration", or raise MAX_S. |
 | Codex edited files | `--sandbox read-only` was missing from the command line. The sandbox enforces read-only, the prompt does not. |
