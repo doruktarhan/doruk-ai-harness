@@ -66,49 +66,27 @@ implement the fix, leave a comment at the fix site explaining the cause, run the
 
 ## 4. Invoke
 
+Write the prompt to a file, then run the wrapper as a background Bash with the worktree as
+WORKDIR; its exit wakes you:
+
 ```bash
-cd .codex-worktree
-codex exec -m gpt-6-luna -c model_reasoning_effort="max" --sandbox workspace-write "<prompt>" < /dev/null
+cat > /tmp/codex_task.txt <<'PROMPT_EOF'
+<prompt>
+PROMPT_EOF
+~/.claude/skills/codex/scripts/codex-run.sh gpt-6-luna max workspace-write "$PWD/.codex-worktree" \
+  /tmp/codex_task.txt /tmp/codex_task_out.txt 3600
 ```
 
 Labor runs on Luna at max effort. The pin is mandatory: `~/.codex/config.toml` inherits whatever
 was last set interactively, so an unpinned call silently retiers the task. Sol and Astra are
 review models and never run labor — see [consultant.md](consultant.md).
 
-`--sandbox workspace-write` replaces the deprecated `--full-auto`; the swap is mechanical, same
-behavior.
-
-`< /dev/null` closes stdin. Per `codex exec --help`, a piped stdin plus a prompt argument makes
-Codex append stdin as a `<stdin>` block, so without the redirect it waits at "Reading additional
-input from stdin..." for an EOF that never comes. Trivial probes can still finish because the
-harness closes stdin on exit; real work hangs at 0% CPU.
-
-Long prompts go through a temp file, passed as an argument (not piped):
-
-```bash
-cat > /tmp/codex_task.txt <<'PROMPT_EOF'
-<prompt>
-PROMPT_EOF
-codex exec -m gpt-6-luna -c model_reasoning_effort="max" --sandbox workspace-write "$(cat /tmp/codex_task.txt)" < /dev/null
-```
-
-Long runs go in the background with polling:
-
-```bash
-( cd .codex-worktree && codex exec -m gpt-6-luna -c model_reasoning_effort="max" --sandbox workspace-write "$(cat /tmp/codex_task.txt)" \
-    < /dev/null > /tmp/codex_out.txt 2>&1 ) &
-PID=$!
-for i in $(seq 1 480); do
-  kill -0 $PID 2>/dev/null || { echo "exited after ${i}s"; break; }
-  [ $((i % 30)) = 0 ] && echo "  ...running at ${i}s, output bytes=$(wc -c < /tmp/codex_out.txt)"
-  sleep 1
-done
-kill -0 $PID 2>/dev/null && { kill -9 $PID; echo "HUNG — killed at 480s"; }
-tail -250 /tmp/codex_out.txt
-```
-
-The redirect attaches to the inner `codex exec`, not the subshell — codex inherits stdin from its
-parent.
+`/tmp/codex_task_out.txt` ends with `CODEX_EXIT=<rc>` or `CODEX_KILLED=<reason>`; progress is
+in `/tmp/codex_task_out.txt.log`. The wrapper closes stdin (a piped stdin plus a prompt
+argument makes Codex wait for an EOF that never comes), caps wall time at MAX_S, and kills a
+run with no session id after 120 s or no output for 600 s. Raise the last two
+(`… 3600 120 1200`) for long builds whose test runs go silent. `workspace-write` replaces the
+deprecated `--full-auto`.
 
 ## 5. Review the diff
 
@@ -147,9 +125,11 @@ Report what Codex did, what was reviewed, and the outcome.
 | Symptom | Fix |
 |---------|-----|
 | `codex: command not found` | `npm i -g @openai/codex && codex auth` |
-| Hangs at "Reading additional input from stdin...", 0% CPU | stdin not closed — add `< /dev/null` to the codex invocation. Most common failure in non-interactive shells. |
+| `CODEX_KILLED=no session id after 120s` | Codex never started a session. `Reading additional input from stdin...` prints on every run; the missing `session id:` line is the signature. Rerun through the wrapper once. |
+| `CODEX_KILLED=no output for 600s` | A long silent build or test run; rerun with a larger QUIET_S, or check the worktree for a stuck process first. |
 | `--full-auto` deprecation warning | Use `--sandbox workspace-write`; same behavior. |
-| Prompt too long | Temp file plus `"$(cat …)"` — codex needs the prompt as an argument, not on a pipe. |
+| Prompt too long | The wrapper passes the prompt file as one argument (codex needs it as an argument, not on a pipe); macOS caps arguments near 1 MB, so point Codex at files to read instead of pasting them. |
+| Two runs clobber each other | Use one prompt and one OUT path per run (your scratchpad or `mktemp`), not the fixed `/tmp` names in the examples. |
 | Codex did not solve it | Add the errors and stack traces from its attempt, split the task and delegate piecewise, or go interactive: `cd .codex-worktree && codex`. |
 | Codex broke unrelated things | Discard the worktree, re-invoke with an explicit list of what not to touch. |
 | Codex misunderstood | Give concrete input/output examples, contrast current vs desired behavior, name the test cases that must pass. |

@@ -83,17 +83,43 @@ object, and reports live context as
 ### Codex invocation shapes
 
 Labor and review are two different models through one CLI, never the same call, each pinned
-explicitly.
+explicitly. All go through the wrapper
+`~/.claude/skills/codex/scripts/codex-run.sh MODEL EFFORT SANDBOX WORKDIR PROMPT_FILE OUT [MAX_S] [START_S] [QUIET_S]`:
 
 ```bash
-# labor  → codex-task-delegator
-codex exec -m gpt-6-luna -c model_reasoning_effort="max" --sandbox workspace-write "<order>" < /dev/null
-# review → codex-feedback-planning
-codex exec -m gpt-6-sol  -c model_reasoning_effort="medium" --sandbox read-only "<order>" < /dev/null
+W=~/.claude/skills/codex/scripts/codex-run.sh
+# labor, in a worktree
+$W gpt-6-luna  max    workspace-write <worktree> /tmp/codex_task.txt   /tmp/codex_task_out.txt 3600
+# review
+$W gpt-6-sol   medium read-only       <repo>     /tmp/codex_prompt.txt /tmp/codex_review.txt   1500
 # heavyweight review (codex-cli 0.153.4+)
-codex exec -m gpt-6-astra  -c model_reasoning_effort="medium" --sandbox read-only "<order>" < /dev/null
+$W gpt-6-astra medium read-only       <repo>     /tmp/codex_prompt.txt /tmp/codex_review.txt   1500
 ```
+
+Launch with `run_in_background`; the wrapper's exit wakes you. OUT ends with `CODEX_EXIT=<rc>`
+or `CODEX_KILLED=<reason>`; progress and the session id are in `OUT.log`.
 
 Luna executors are Bash processes, not Claude subagents: no `SendMessage`, no
 `depth-gauge.sh`, no `ROLE:` enforcement, and the persistent-agent rules do not apply to
-them. Launch with `run_in_background` and collect the output file.
+them.
+
+## The 2026-10-22 overnight stall
+
+Four stalls, 1 h 46 min to 5 h 54 min each, in one orders_matched build; two other foremen
+never woke at all the night before. Full report:
+`polymarket-strategies/research/2026-10-22-agent-stalls/README.md`.
+
+- **Named helpers report to the wrong inbox.** With `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`,
+  an `Agent` call with `name` makes a session teammate whose done notice and messages go to
+  `~/.claude/teams/session-<id8>/inboxes/team-lead.json`. 48 of 48 items there were unread.
+  Unnamed helpers and background Bash reliably wake their parent, so the old hook line
+  ("background leaves do not wake you") was wrong. Hence: no `name`, message by `agentId`.
+- **Codex hung at startup for 2 h 23 min** with no session file and 0.19 s of CPU. No
+  `< /dev/null`, no working cap (macOS has no `timeout`, and the Bash tool's `timeout` is
+  ignored under `run_in_background`), nothing checking that a session had started. Hence the
+  wrapper. Note that `Reading additional input from stdin...` prints on every run, even with
+  stdin closed; the hang signature is that no `session id:` line follows it.
+- **The coordinator saw "finished" notices while the foreman's text said "waiting" and only
+  relayed the text.** Hence the Waiting rule and `agent-watch.py`, replayed on that session:
+  it flags the lost reports and the idle foreman by 01:20, the hung Codex by 09:00 and the
+  last lost report by 09:40, and prints nothing on the healthy afternoon.
