@@ -146,7 +146,7 @@ points at the record, the record points at the PR.
 
 | Skill | Role | What it does |
 |---|---|---|
-| **`handoff`** | orient | Universal `.doruk/` state for any repo. Maintains a `STATE.md` landscape (active / parked / done, plus a backlog) and each feature's live `handoff.md`. Bootstraps `.doruk/` on first use, so a repo needs no manual setup. |
+| **`handoff`** | orient | Universal `.doruk/` state for any repo. Maintains a `STATE.md` landscape (active / parked / done, with open tasks per row), a `BACKLOG.md` of planned work by level, and each feature's live `handoff.md`. Bootstraps `.doruk/` on first use, so a repo needs no manual setup. |
 | **`feature-roadmap`** | plan | Durable step-spine for multi-step programs. When a feature has ordered phases that span sessions (craft→test→refine, a migration, an audit sweep), adds a `roadmap.md` beside `handoff.md` so the map never gets clobbered by Markov rewrites. `handoff.md` shrinks to a two-line pin; `roadmap.md` holds the full step list, a mermaid flow, and a checkable "Done when" per step. |
 | **`feature-organize`** | distill | Post-ship distillation. Turns a feature folder's in-flight scratch into a durable `feature.md` record (decisions + WHY) and triages aux files: keep / archive / delete. Full mode rewrites on close; narrow mode appends one note when a sub-deliverable ships. |
 | **`wrap`** | multi-agent | End-of-session wrap-up for multi-agent feature folders where each agent owns one folder. Runs 5 consistency checks (state agreement, stale links, cross-folder writes, handoff trim, date convention) then the mechanical updates. Composes with `handoff`. |
@@ -183,7 +183,7 @@ links to it.
 flowchart LR
     subgraph DK[".doruk/ — the memory harness"]
         direction LR
-        STATE["<b>STATE.md</b><br/><i>the landscape / index<br/>active · parked · backlog</i>"]
+        STATE["<b>STATE.md</b><br/><i>the landscape / index<br/>active · parked · open tasks</i>"]
         subgraph FEAT["features/NN-slug/"]
             direction TB
             HND["<b>handoff.md</b><br/><i>live, in-flight</i>"]
@@ -195,7 +195,7 @@ flowchart LR
     end
 
     STATE ==>|"opens the active feature"| HND
-    STATE -.->|"a backlog item gets promoted"| FEAT
+    STATE -.->|"a BACKLOG.md item gets promoted"| FEAT
     HND <-->|"reference, don't duplicate"| REC
     HND -->|"working notes live beside it"| SCR
     REC ==>|"durable learning graduates up"| IDX
@@ -213,7 +213,7 @@ flowchart LR
 | Navigation | Driven by |
 |---|---|
 | Read `STATE.md` → open the active feature's `handoff.md` → recall relevant `memory/` notes | **`handoff`** (+ recall) |
-| Promote a backlog item in `STATE.md` into a new `features/NN-slug/` folder | **`handoff`** |
+| Promote a `BACKLOG.md` item into a new `features/NN-slug/` folder | **`handoff`** |
 | When a feature becomes a multi-step program: add `roadmap.md` + `step-0N-*/` folders; shrink `handoff.md` to a pin | **`feature-roadmap`** |
 | On ship: distill the live `handoff.md` into the durable `feature.md`, graduate learnings into `MEMORY.md` | **`feature-organize`** |
 | End of session: check the files still agree, trim the board, fix stale links | **`wrap`** |
