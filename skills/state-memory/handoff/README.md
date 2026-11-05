@@ -7,8 +7,9 @@ itself: a `.doruk/` folder with a `STATE.md` landscape and a live `handoff.md` p
 
 `/handoff` maintains `.doruk/` for you:
 
-- **STATE.md** — a one-line-per-feature index plus a backlog of future work. Read this first
+- **STATE.md** — a one-line-per-feature index with each feature's open tasks. Read this first
   in any session and you know the whole landscape.
+- **BACKLOG.md** — planned future work with no folder yet, in four levels (quick wins, next builds, later, waiting on a trigger).
 - **features/NN-slug/handoff.md** — the live coordination for one feature: what's being done
   right now, the single next move, and a task board when the feature splits into tasks.
 - **features/NN-slug/feature.md** — the durable record: why the work exists and the decisions

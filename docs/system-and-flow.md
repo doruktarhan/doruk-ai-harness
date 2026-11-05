@@ -125,7 +125,8 @@ All harness state lives in one folder at the repo root. The single-owner-per-fea
 
 ```
 .doruk/
-├── STATE.md                     # the landscape: thin index + backlog of future work
+├── STATE.md                     # the landscape: thin index of features + open tasks
+├── BACKLOG.md                   # planned future work with no folder yet, by level
 ├── MEMORY.md                    # durable, cross-feature learnings (the index)
 ├── memory/                      # longer memory notes, one file per topic
 │   ├── <topic-a>.md
@@ -138,7 +139,7 @@ All harness state lives in one folder at the repo root. The single-owner-per-fea
         └── archive/             # scratch that was only true during the work (optional)
 ```
 
-Three tiers, no overlap: **STATE.md** (read first) is a thin index plus backlog;
+Three tiers, no overlap: **STATE.md** (read first) is a thin index of features and their open tasks (future work lives in **BACKLOG.md**);
 **handoff.md** is one feature's live coordination; **feature.md** is the durable record,
 written on ship by a distillation step rather than by routine handoffs.
 
@@ -154,8 +155,8 @@ The cross-feature board answers "what is the world right now" in zones:
   Its purpose is disambiguation when "continue with the X work" could mean several threads.
   It is **not** a completed-work archive — `ls features/` is the index.
 - **Cleanup / backlog** — orphan infrastructure that belongs to no single feature (worktrees
-  still on disk after a merge, stacks to tear down, temp files), and future work that has no
-  folder yet (promoted to a feature when picked up).
+  still on disk after a merge, stacks to tear down, temp files). Future work with no folder
+  yet lives in `BACKLOG.md` (promoted to a feature when scoped or started).
 
 Conventions that keep it honest: **reference, don't duplicate** (presence and intent only);
 **link work, don't snapshot its status** (write the PR reference, not "merged" as prose —
