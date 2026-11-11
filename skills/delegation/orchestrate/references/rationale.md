@@ -1,9 +1,11 @@
 # orchestrate — rationale and incident log
 
-Background for the rules in `SKILL.md`. Not needed in the hot path; read when a rule looks
+Background for the rules in `SKILL.md` and the two role files. Not needed in the hot path; read when a rule looks
 arbitrary or when you are tempted to change one.
 
-## Why models are tiered this way
+## Why models are tiered this way (v3 background)
+
+v4 routes by size instead; see "The 2026-11-11 rewrite" below. The Codex tiers still hold.
 
 - **Opus drafts, Fable reviews (constrained work).** Reviewing a design costs roughly 5% of
   producing one, so the expensive model is spent on the judgment call, not the typing.
@@ -50,7 +52,7 @@ produce input material such as probe logs and field dumps, never the skill text.
 
 ## Splitting big work — the 2026-09-27 incident
 
-Designing an event-driven trading engine (polymarket-window, feature 16):
+Designing a large event-driven engine in another project:
 
 - Two spec agents briefed "read all of this, then design the whole thing" reached 485k and
   430k tokens, mostly from reading before writing. A research scout given seven questions
@@ -96,7 +98,8 @@ $W gpt-6-sol   medium read-only       <repo>     /tmp/codex_prompt.txt /tmp/code
 $W gpt-6-astra medium read-only       <repo>     /tmp/codex_prompt.txt /tmp/codex_review.txt   1500
 ```
 
-Launch with `run_in_background`; the wrapper's exit wakes you. OUT ends with `CODEX_EXIT=<rc>`
+Launch with `run_in_background`, then wait in the foreground for the final line (the wait
+loop is in the `codex` skill). OUT ends with `CODEX_EXIT=<rc>`
 or `CODEX_KILLED=<reason>`; progress and the session id are in `OUT.log`.
 
 Luna executors are Bash processes, not Claude subagents: no `SendMessage`, no
@@ -105,9 +108,8 @@ them.
 
 ## The 2026-10-22 overnight stall
 
-Four stalls, 1 h 46 min to 5 h 54 min each, in one orders_matched build; two other foremen
-never woke at all the night before. Full report:
-`polymarket-strategies/research/2026-10-22-agent-stalls/README.md`.
+Four stalls, 1 h 46 min to 5 h 54 min each, in one overnight build; two other foremen
+never woke at all the night before.
 
 - **Named helpers report to the wrong inbox.** With `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`,
   an `Agent` call with `name` makes a session teammate whose done notice and messages go to
@@ -123,3 +125,41 @@ never woke at all the night before. Full report:
   relayed the text.** Hence the Waiting rule and `agent-watch.py`, replayed on that session:
   it flags the lost reports and the idle foreman by 01:20, the hung Codex by 09:00 and the
   last lost report by 09:40, and prints nothing on the healthy afternoon.
+
+## The 2026-11-11 rewrite (v4)
+
+Evidence: a review of ten days of sessions in one project (1–11 Nov 2026), plus Doruk's
+decisions of 11 Nov.
+
+- **Rules moved from the skill body into two role files loaded by hooks.** In the 4–10 Nov
+  session the session-start pointer was shown 18 times and the skill was loaded 0 times.
+- **`coordinator-hook.sh` became `main-hook.sh` with no model check.** On Claude Code 2.1.322
+  the SessionStart stdin carries no `model`. Doruk starts `claude` with no `--model` and
+  `~/.claude/settings.json` says `sonnet`, so the old chain resolved "sonnet" and printed
+  nothing, whatever `/model` was switched to afterwards.
+- **`foreman-hook.sh` no longer goes silent on any `Role:` line.** The main session opens
+  almost every brief with its own role line ("Role: foreman, small scope", "Role:
+  designer"), which skipped the injection on 9 of 45 Opus/Fable spawns since 4 Nov,
+  including the last six. Only `Role: executor` or `Role: leaf` skips it now.
+- **The hook tells main-session spawns from a foreman's helper spawns** by `agent_id` in the
+  PreToolUse stdin (present only when a subagent makes the call). Helpers get no foreman
+  text.
+- **Agents keep their names** (Doruk, 11 Nov): idle notices cost about 2% of the week and he
+  wants addressable, continuous agents. The misrouted-report problem (3–4 Nov, 6–7 Nov) is
+  handled in the foreman's rules: helpers are spawned in the foreground, so the report is
+  the tool result. Checked headless on 2.1.322 for a named and an unnamed helper.
+- **A named agent keeps its turn open while Codex runs.** 4 of about 30 runs in the week of
+  4 Nov stalled 11–73 minutes, all in named teammates that a background notice did not
+  wake. The wrapper is unchanged; the agent waits for its final `CODEX_*` line.
+- **`main-hook.sh` is registered per project**, so only projects that orchestrate carry
+  the text.
+- **Fable effort is set by the hook:** unset becomes `medium`, `xhigh` and `max` become
+  `high`. Three long Fable agents made up about 70% of one week's Fable spend.
+- **Context limits are soft.** A foreman may run to 300–400k. The main session nudges for a
+  handoff past 250k and gives no new tasks past 350k. `depth-gauge.sh --hook` warns it once
+  per agent per line. Agents are shown no countdown of their own: Anthropic's Fable 5.2
+  guide says a visible token budget raises cost.
+- **Intake classes (open / constrained / mechanical) and "Opus drafts, Fable approves" were
+  dropped** for routing by size. The class line was shown 0 times in 10 days and the
+  draft-approve flow ran 0 times in 31 builds.
+- **Gates are run by the foreman.** Foremen already ran 36 of 38 Codex reviews.

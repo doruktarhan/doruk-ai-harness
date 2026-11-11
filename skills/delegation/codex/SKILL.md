@@ -43,7 +43,7 @@ offer in one line and proceed if the user agrees:
 
 > "Want Codex to review this plan first?" / "Want me to hand this to Codex in a worktree?"
 
-Every `codex exec` goes through the wrapper, usually as a background Bash whose exit wakes you:
+Every `codex exec` goes through the wrapper, as a background Bash:
 
 ```bash
 ~/.claude/skills/codex/scripts/codex-run.sh MODEL EFFORT SANDBOX WORKDIR PROMPT_FILE OUT [MAX_S=1500] [START_S=120] [QUIET_S=600]
@@ -53,6 +53,16 @@ It closes stdin, caps wall time, kills a run with no session id after START_S or
 for QUIET_S, prints a heartbeat a minute, and ends OUT with `CODEX_EXIT=<rc>` or
 `CODEX_KILLED=<reason>` (exit 124). macOS has no `timeout`, and the Bash tool's `timeout`
 is ignored under `run_in_background`, so the wrapper is the only cap.
+
+Keep your turn open while a run is in flight. The background notice does not reliably wake
+a named agent, so wait in the foreground until the wrapper's final line is in OUT, then
+read OUT:
+
+```bash
+until grep -q '^CODEX_' OUT; do sleep 20; done   # Bash timeout 600000; run again if it times out
+```
+
+A Monitor on OUT for `^CODEX_` does the same job.
 
 Then read the mode's reference for model pins, the prompt shape, and troubleshooting:
 

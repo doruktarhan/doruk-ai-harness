@@ -1,157 +1,282 @@
 # doruk-ai-harness
 
 **A coding harness for Claude Code, built as a system — not a pile of skills.**
-Work starts in `discuss`: loose, opinionated exploration to find a task's shape. `align` then pins
-down every open design decision as a design-tree interview, each question carrying a recommended
-answer, at the pace you pick (one at a time, or whole rounds). From there you build directly, or hand a
-multi-step build to `orchestrate`, which delegates every unit of work to model-tiered subagents and
-gates the design and the final diff with a genuinely different model, so what lands is always the
-highest-quality version. Three supporting blocks back it: a committed `.doruk/` **state & memory**
-layer, cross-model **delegation** in isolated git worktrees, and **understanding** skills that turn
-an outcome into something a human can actually absorb.
+One session talks to you and does nothing else. It hands each task to an agent sized for it: a
+Sonnet agent for a check, an Opus foreman for a simple build, a Fable foreman for design. Every
+foreman runs its own helpers, has a *different* model review the work before it merges, and leaves a
+handoff on disk. Four small hooks load the rules at the right moment, so nobody has to remember them.
+Around that sit a committed `.doruk/` **state & memory** layer, cross-model **delegation** in git
+worktrees, and two skills that settle a design before anything is built.
 
-[Workflow](#1-workflow--the-headline-skillsworkflow) · [State & Memory](#2-state--memory-skillsstate-memory) ·
-[Delegation](#3-delegation-skillsdelegation) · [Understanding](#4-understanding-skillsunderstanding) ·
-[Meta](#5-meta-skillsmeta) · [Jev Browser](#6-jev-browser--separate-repo-new) ·
-[Install](#install) · [Demo](#see-it-in-motion--demo-app) · [Showcase page](web/index.html)
-
-> **New: [`jev-browser`](https://github.com/doruktarhan/jev-browser)**, a skill plus a CLI I adapted
-> from Cline's Jev integration, so an agent can hand a whole "find this on a website" goal to a browser action model in **one call**. In a
-> 72-run benchmark against Playwright MCP it used **30% fewer agent tokens overall, and about half on
-> heavy pages**. [Details ↓](#6-jev-browser--separate-repo-new)
+[How a session is orchestrated](#how-a-session-is-orchestrated) · [All skills](#all-skills) ·
+[State & memory](#state--memory-the-doruk-folder) · [Install](#install) · [Uninstall](#uninstall) ·
+[Demo](#see-it-in-motion--demo-app) · [Jev Browser](#jev-browser--separate-repo) ·
+[Showcase page](web/index.html)
 
 ---
 
-## Why I built this
+## How a session is orchestrated
 
-> *First person, because it's mine and I want to be honest about why it exists, not sell it.*
-
-Two things kept going wrong when I built with an AI agent. First, **"just build it" sessions went
-sideways**: either the agent spammed me at every micro-step, or it ran off and produced a large diff
-I then had to reverse-engineer and quality-check by hand. Second, **the context window is a terrible
-memory**: it evaporates on compaction or a new session, it doesn't travel across machines, and it
-rots silently as the model paraphrases its own earlier notes.
-
-So I built a system instead of collecting prompts. The **workflow** is the spine: a task starts in
-loose discussion, then either gets built directly or handed to `orchestrate` for a delegated,
-model-tiered build, with a human in the loop at every real decision and, on a delegated build, the
-quality, complexity, and simplification reviewed by a *genuinely different* model at each gate. The
-point is structural: the version that lands is the reviewed one by construction, not because I
-remembered to ask for a review afterward.
-
-Underneath that, two supporting blocks do the unglamorous work. **State & memory** puts the memory on
-disk: one committed `.doruk/` folder is the durable, indexed source of truth, and the context window
-is treated as disposable scratch. **Delegation** lets me hand a unit of work to a *different* model
-(OpenAI Codex, Google Gemini) inside an isolated git worktree, review its diff, and merge it or throw
-it away with zero risk to the main branch.
-
-### Why v3: trimmed for Fable-class models
-
-OpenAI's September 2026 post *"Rethinking skills and prompts for GPT-6 Astra"* argues that
-scaffolding built to babysit a weaker model — broad triggers, mandatory pre-reads, CAUTION/NEVER
-language — slows a frontier model down: it competes for triggers, gets read unneeded, and makes an
-aligned model stop to ask instead of just doing the work. v3 applies that here: `align` was rebuilt
-lean on Matt Pocock's `grilling` method (briefly folded into `discuss` in between), the two Codex
-skills merged into `codex`, and `ship`'s scripted
-pipeline — built for pre-Fable models, dependent on the now-disabled `superpowers` plugin — is
-superseded by `orchestrate`. Rules live in [`skills/meta/lean-instructions`](skills/meta/lean-instructions);
-superseded skills stay in [`skills/legacy/`](skills/legacy/README.md).
-
----
-
-## The system at a glance
-
-The harness leads with the **workflow** pipeline, backed by two supporting blocks that operate on one
-committed `.doruk/` state folder. The diagram below is the canonical view (also in
-[`docs/diagram.md`](docs/diagram.md)).
+The whole picture first, then one block at a time. Solid boxes are sessions and agents; the slanted
+boxes are hooks, which are small scripts Claude Code runs on its own at a fixed moment.
 
 ```mermaid
 flowchart TB
-    subgraph WF["WORKFLOW · find the shape first (skills/workflow/)"]
-        D["<b>discuss</b><br/><i>loose, opinionated exploration<br/>to find the shape</i>"]
-        A["<b>align</b><br/><i>design-tree interview, every question<br/>with a recommended answer</i>"]
-        D ==>|"shape found"| A
+    U(["<b>You</b>"])
+    M["<b>Main session · intake</b><br/>talks, routes, relays, reads the repo<br/><i>no design, no review, no build</i>"]
+    R{"Route by size"}
+    S["<b>Sonnet agent</b><br/>tiny change, check, lookup<br/><i>works alone</i>"]
+    O["<b>Opus foreman</b><br/>low-logic build"]
+    F["<b>Fable foreman</b><br/>scoped build or design<br/><i>effort medium · high rarely · never max</i>"]
+
+    subgraph JOB["Inside every foreman"]
+        direction LR
+        HP["<b>Helpers</b><br/>Sonnet mostly"] --> G["<b>Codex review gate</b><br/>a different model"] --> MG["<b>Merge</b>"] --> HO["<b>handoff.md</b><br/>in the feature folder"]
     end
 
-    BUILD["build directly, or hand off to ORCHESTRATE<br/>model-tiered build + design/diff review gated by a different model"]
-    A ==>|"decisions pinned"| BUILD
+    H1[/"SessionStart hook<br/>loads the main-session rules"/]
+    H2[/"PreToolUse hook on agent spawns<br/>prepends the foreman rules, caps Fable effort"/]
+    H3[/"Context hook<br/>warns at 250k and 350k tokens"/]
 
-    subgraph SM["STATE &amp; MEMORY · the committed .doruk/ layer (skills/state-memory/)"]
-        direction TB
-        SM1["<b>handoff</b><br/><i>STATE.md board + per-feature handoff.md</i>"]
-        SM2["<b>feature-organize</b><br/><i>distill feature.md when work ships</i>"]
-        SM3["<b>wrap</b><br/><i>end-of-session consistency + updates</i>"]
-        SM4["<b>feature-roadmap</b><br/><i>durable step-spine for multi-step programs</i>"]
-    end
+    BACK(["<b>Report</b><br/>back to the main session,<br/>which relays it to you"])
 
-    subgraph DG["DELEGATION · isolation + cross-model help (skills/delegation/)"]
-        direction TB
-        DG1["<b>worktree-init</b><br/><i>create isolated worktree, copy local files</i>"]
-        DG2["<b>worktree-lifecycle</b><br/><i>build / test / cleanup inside a worktree</i>"]
-        DG3["<b>codex</b><br/><i>OpenAI Codex — consultant or implementer</i>"]
-        DG4["<b>gemini-delegate</b><br/><i>Google Gemini — consultant or implementer</i>"]
-        DG5["<b>orchestrate</b><br/><i>which model, when — for subagent spawns</i>"]
-    end
+    U ==>|"task"| M
+    H1 -.-> M
+    H3 -.-> M
+    M ==> R
+    H2 -.-> R
+    R -->|"tiny"| S
+    R -->|"simple build"| O
+    R -->|"design"| F
+    O ==> JOB
+    F ==> JOB
+    S --> BACK
+    JOB ==> BACK
 
-    D -.->|orients on| SM1
-    BUILD ==>|runs in| DG
-    BUILD -.->|writes back to| SM
+    classDef you fill:#b45309,stroke:#92400e,color:#fffbeb;
+    classDef main fill:#1d4ed8,stroke:#1e3a8a,color:#eff6ff;
+    classDef agent fill:#7c3aed,stroke:#5b21b6,color:#faf5ff;
+    classDef step fill:#0e7490,stroke:#155e75,color:#f0fdff;
+    classDef hook fill:#f8fafc,stroke:#64748b,color:#0f172a,stroke-dasharray: 5 4;
+    class U,BACK you;
+    class M,R main;
+    class S,O,F agent;
+    class HP,G,MG,HO step;
+    class H1,H2,H3 hook;
+```
+
+### Block 1 · You and the main session
+
+The session you type into is **intake**. It talks with you, opens and closes agents, relays their
+results, and reads the repo to answer questions. Design, code review, building, merging and deploys
+all go to agents, even when a step looks small. That keeps the one conversation you read short, and
+keeps the expensive model out of chat.
+
+- **Hook: `main-hook.sh` on `SessionStart`.** It puts [`roles/main.md`](skills/delegation/orchestrate/roles/main.md)
+  into the session at start, on resume, after `/clear` and after compaction, so the rules come back
+  after a context wipe. It stays silent for subagents.
+- **Opt-in per project.** This hook is registered in a project's own `.claude/settings.json`, so
+  only the projects where you orchestrate carry the text.
+
+### Block 2 · Routing by size
+
+The main session picks the smallest agent that can own the task and says the route in one line as it
+spawns.
+
+| The task is | It goes to | Model |
+|---|---|---|
+| A config change, a tiny change, any check or lookup | One agent, no foreman | Sonnet |
+| A low-logic build, where the codebase dictates the shape | A foreman | Opus |
+| A scoped build, or design work | A foreman | Fable at effort `medium`; `high` rarely; never above |
+
+- **Hook: `foreman-hook.sh` on `PreToolUse` for agent spawns.** When the main session spawns an Opus
+  or Fable agent, the hook prepends [`roles/foreman.md`](skills/delegation/orchestrate/roles/foreman.md)
+  to the brief, so every foreman starts with the same rules. A brief that opens with
+  `Role: executor.` is left alone, for an agent that should work alone.
+- **The same hook caps Fable effort.** A Fable spawn with no effort set gets `medium`, and `xhigh`
+  or `max` is lowered to `high`. Sonnet spawns pass through untouched.
+
+### Block 3 · Inside a foreman
+
+A foreman owns its job end to end: the design decisions, the build, the reviews, the merge and the
+handoff. The brief gives it the goal and what done looks like, and leaves the how to it.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant M as Main session
+    participant F as Foreman
+    participant H as Helpers (Sonnet)
+    participant C as Codex (Sol or Astra)
+    participant D as Feature folder
+
+    M->>F: brief (the hook has prepended the foreman rules)
+    F->>H: labor, spawned in the foreground
+    H-->>F: each report returns as the call's result
+    F->>F: design, spec and verdict stay with the foreman
+    F->>C: review of the frozen spec or the final diff
+    Note over F,C: The foreman keeps its turn open and waits<br/>until the result file ends with a CODEX_ line
+    C-->>F: findings
+    F->>F: fix or answer every finding, then merge
+    F->>D: handoff.md kept current at each checkpoint
+    F-->>M: report with what changed, each gate, open decisions
+```
+
+- **Helpers** do exploration, data pulls, scripts and mechanical edits. They are Sonnet agents
+  mostly, with an Opus helper for a piece that needs judgement. Helpers spawn nothing.
+- **Review gates** are run by the foreman, and nothing merges before its gate has run. A code diff
+  goes to Codex Sol. A money path or the spec of a new mechanism goes to Codex Astra. Docs and
+  config with no logic need no gate. The reviewer is a different model from the builder, so no
+  model grades its own work.
+- **The Codex foreground wait.** This one is a rule in the foreman text and the
+  [`codex`](skills/delegation/codex/SKILL.md) skill, backed by a wrapper script. A background
+  "finished" notice does not reliably wake a named agent, which left agents idle for as long as 73 minutes.
+  So the foreman runs Codex through [`codex-run.sh`](skills/delegation/codex/scripts/codex-run.sh),
+  which caps the run and always ends its output file with a `CODEX_` line, and waits for that line:
+  `until grep -q '^CODEX_' OUT; do sleep 20; done`.
+- **Handoff.** The foreman keeps `handoff.md` in `.doruk/features/<feature>/` current: state,
+  decisions and why, file map, open items, dead ends. A fresh foreman can start from it.
+
+### Block 4 · Watching context size
+
+A foreman may run to 300–400k tokens when the work needs it. The main session cannot see an agent's
+context from the conversation, so a hook measures it from the agent's transcript on disk.
+
+```mermaid
+flowchart LR
+    A["Foreman under 250k<br/><i>works normally</i>"]
+    B["Past 250k · NUDGE<br/>main session asks for a handoff<br/>at the next checkpoint"]
+    C["handoff.md written<br/>in the feature folder"]
+    D["Fresh foreman<br/>starts from the handoff"]
+    E["From 350k · STOP<br/>questions only<br/>new tasks go to a fresh agent"]
+
+    A --> B --> C --> D
+    B -.->|"keeps growing"| E
+
+    classDef ok fill:#0e7490,stroke:#155e75,color:#f0fdff;
+    classDef warn fill:#b45309,stroke:#92400e,color:#fffbeb;
+    classDef stop fill:#b91c1c,stroke:#7f1d1d,color:#fef2f2;
+    class A,C,D ok;
+    class B warn;
+    class E stop;
+```
+
+- **Hook: `depth-gauge.sh --hook` on `UserPromptSubmit`.** On each message you send, it prints one
+  line to the main session for every agent that crossed 250k or 350k since the last warning.
+- **The same script on `PreToolUse` for `SendMessage`.** When the main session messages an agent at
+  350k or more, it is reminded every time.
+- **It only warns.** Nothing is blocked, and the agents see no countdown of their own.
+- Run `~/.claude/skills/orchestrate/depth-gauge.sh` by hand for a table of every live agent.
+
+### The hooks in one table
+
+| Hook | Registered in | Fires on | What it does |
+|---|---|---|---|
+| [`main-hook.sh`](skills/delegation/orchestrate/main-hook.sh) | The project's `.claude/settings.json` (opt-in) | `SessionStart` | Loads the main-session rules |
+| [`foreman-hook.sh`](skills/delegation/orchestrate/foreman-hook.sh) | `~/.claude/settings.json` | `PreToolUse`, matcher `Agent\|Task` | Prepends the foreman rules to Opus and Fable spawns; caps Fable effort |
+| [`depth-gauge.sh --hook`](skills/delegation/orchestrate/depth-gauge.sh) | `~/.claude/settings.json` | `UserPromptSubmit` | Warns once per agent at 250k and at 350k |
+| `depth-gauge.sh --hook` | `~/.claude/settings.json` | `PreToolUse`, matcher `SendMessage` | Reminds on every message to an agent at 350k or more |
+
+Each hook needs `python3`, prints nothing when it has nothing to say, and exits 0 on any error, so
+it cannot break a session or a spawn. To change a rule, edit the role file; the hooks read it on
+every run. Details and a three-step check that they fire:
+[`HOOK-INSTALL.md`](skills/delegation/orchestrate/HOOK-INSTALL.md). Why each rule exists, with the
+measurements behind it: [`references/rationale.md`](skills/delegation/orchestrate/references/rationale.md).
+
+> **Make it yours.** The two role files are my live rules, so they name me ("Doruk") as the person
+> the main session talks to, and they point at `.doruk/features/<feature>/` for handoffs (the
+> [`handoff`](skills/state-memory/handoff/SKILL.md) skill's layout). Edit
+> `~/.claude/skills/orchestrate/roles/*.md` after installing to put your own name, models and gates
+> in. Tested on Claude Code 2.1.322 with agent teams on (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`).
+
+---
+
+## Before the build: discuss, then align
+
+Orchestration is for work whose shape is known. Two skills get it there.
+
+```mermaid
+flowchart LR
+    D["<b>discuss</b><br/><i>loose, opinionated exploration<br/>to find the shape</i>"]
+    A["<b>align</b><br/><i>design-tree interview, every question<br/>with a recommended answer</i>"]
+    B["<b>build</b><br/><i>directly, or routed<br/>by the main session</i>"]
+    P["<b>prove-it</b><br/><i>run it through the real entry point<br/>before calling it done</i>"]
+    D ==>|"shape found"| A ==>|"decisions pinned"| B ==> P
 
     classDef wf fill:#1d4ed8,stroke:#1e3a8a,color:#eff6ff;
     classDef hitl fill:#b45309,stroke:#92400e,color:#fffbeb;
-    classDef sm fill:#0e7490,stroke:#155e75,color:#f0fdff;
-    classDef dg fill:#7c3aed,stroke:#5b21b6,color:#faf5ff;
-    class D,A wf;
-    class BUILD hitl;
-    class SM1,SM2,SM3,SM4 sm;
-    class DG1,DG2,DG3,DG4,DG5 dg;
+    class D,A,P wf;
+    class B hitl;
 ```
 
-The skills live under five category directories — `skills/workflow/`, `skills/state-memory/`,
-`skills/delegation/`, `skills/understanding/`, `skills/meta/` — that exist for browsing (plus
-`skills/legacy/`, kept for reference and not installed — see [§ Why v3](#why-v3-trimmed-for-fable-class-models)).
-Each leaf is a standard Claude Code skill (`skills/<block>/<name>/SKILL.md`). For the full description see
-[`docs/system-and-flow.md`](docs/system-and-flow.md) (the architecture),
-[`docs/memory-system.md`](docs/memory-system.md) (why the memory layer is shaped the way it is), and
-[`docs/diagram.md`](docs/diagram.md) (the diagram in isolation). The same content is presented as an
-interactive, click-to-drill page in [`web/index.html`](web/index.html).
+`discuss` holds off specs, plans and code while the agent brings takes and tradeoffs. `align` then
+walks the open decisions as a tree, asking only those whose prerequisites are settled, at the pace
+you pick (one at a time, or whole rounds). `prove-it` is model-invoked: the agent reaches for it on
+its own when it is about to write tests or declare a feature done.
 
 ---
 
-## 1. Workflow — the headline (`skills/workflow/`)
+## All skills
 
-Three skills: find the shape of a task, pin down its design decisions, then prove the result actually works before calling it done (`prove-it` is model-invoked, not a slash command — the agent reaches for it on its own when it is about to write tests or declare a feature done).
+Fourteen skills in five folders under [`skills/`](skills/). The folders are for browsing; each leaf
+(`skills/<group>/<name>/SKILL.md`) is a standard Claude Code skill.
 
-| Skill | Beat | What it does |
-|---|---|---|
-| **`discuss`** | explore | Loose, opinionated exploration *before* committing to a design — the agent brings takes and tradeoffs, not a fixed interrogation, and deliberately holds off on specs, plans, or code. Once the shape converges, it offers `align`. |
-| **`align`** | converge | A design-alignment interview built on [Matt Pocock's `grilling`](https://github.com/mattpocock/skills): the plan is a design tree, the agent asks only decisions whose prerequisites are settled, every question carries a recommended answer worded so "yes" accepts it, facts get looked up (or delegated to a sub-agent) instead of asked. What's mine on top: a **pace** asked once up front — *one by one* (each question self-contained with its own context and why, no scrolling back) or *bulk rounds* (the whole frontier per turn) — a soft/hard depth knob, a brainstorm-first turn for vague ideas, and an ending that writes the decisions into the feature's `.doruk/` handoff. |
-| **`prove-it`** | verify | "Done" means exercised through the real entry point (UI, CLI, API, the running skill) with a repeatable artifact left behind: a script that reruns the check plus its output, screenshot, or recording. End-to-end for complex features; isolated tests only for genuinely standalone logic, and those list failure modes before code. The repo's own test conventions win. It's adapted from a popular set of absolute testing rules ("never write unit tests after code," "E2E as the sole mechanism") and deliberately rewritten as defaults instead of absolutes, per [`lean-instructions`](skills/meta/lean-instructions) — absolutes make capable models rigid where a rule doesn't fit. |
+**Workflow** · [`skills/workflow/`](skills/workflow/)
 
-Align doesn't hand off to a fixed next skill. For most work, just build directly from there; for a
-multi-step build you want delegated across model-tiered subagents, go to
-[`orchestrate`](#3-delegation-skillsdelegation). Quality on a delegated build isn't a separate
-pipeline stage — it's built into `orchestrate`'s review gates: a *genuinely different* model (Codex
-Sol or Astra) reviews the design and the final diff before anything lands, so a single model never
-grades its own work.
+| Skill | What it does |
+|---|---|
+| [`discuss`](skills/workflow/discuss/SKILL.md) | Loose, opinionated exploration to find a task's shape before any spec, plan or code. |
+| [`align`](skills/workflow/align/SKILL.md) | Pins down every open design decision in an interview, each question with a recommended answer. |
+| [`prove-it`](skills/workflow/prove-it/SKILL.md) | Exercises a finished feature through its real entry point and leaves a rerunnable check plus evidence. |
+
+**State & memory** · [`skills/state-memory/`](skills/state-memory/)
+
+| Skill | What it does |
+|---|---|
+| [`handoff`](skills/state-memory/handoff/SKILL.md) | Keeps the `.doruk/` state: the `STATE.md` board, `BACKLOG.md`, and each feature's live `handoff.md`. |
+| [`feature-roadmap`](skills/state-memory/feature-roadmap/SKILL.md) | Adds a durable `roadmap.md` step list for a feature too big for one handoff. |
+| [`feature-organize`](skills/state-memory/feature-organize/SKILL.md) | Distills a shipped feature's folder into a durable `feature.md` and triages the scratch files. |
+| [`wrap`](skills/state-memory/wrap/SKILL.md) | End-of-session consistency checks and updates for a folder one agent owns. |
+
+**Delegation** · [`skills/delegation/`](skills/delegation/)
+
+| Skill | What it does |
+|---|---|
+| [`orchestrate`](skills/delegation/orchestrate/SKILL.md) | The orchestration rules above: two role files, three hook scripts, the context gauge and an overnight watchdog. |
+| [`codex`](skills/delegation/codex/SKILL.md) | Runs the OpenAI Codex CLI as a read-only reviewer or a worktree implementer, through a wrapper that cannot hang. |
+| [`gemini-delegate`](skills/delegation/gemini-delegate/SKILL.md) | Runs the Google Gemini CLI in the same two roles. |
+| [`worktree-init`](skills/delegation/worktree-init/SKILL.md) | Creates an isolated git worktree, copies the local files git does not carry, and bootstraps it. |
+| [`worktree-lifecycle`](skills/delegation/worktree-lifecycle/SKILL.md) | Operating manual for an agent inside a worktree: orient, build and test in isolation, clean up. |
+
+**Understanding** · [`skills/understanding/`](skills/understanding/)
+
+| Skill | What it does |
+|---|---|
+| [`explain-diff-html`](skills/understanding/explain-diff-html/SKILL.md) | Turns a diff, branch or PR into a self-contained HTML explanation with a short quiz. External; credit Geoffrey Litt. |
+
+**Meta** · [`skills/meta/`](skills/meta/)
+
+| Skill | What it does |
+|---|---|
+| [`lean-instructions`](skills/meta/lean-instructions/SKILL.md) | Rules and an audit for writing skills, `CLAUDE.md`, hooks and task prompts for frontier models. |
+
+**Legacy** · [`skills/legacy/`](skills/legacy/README.md) holds `ship`, `codex-feedback-planning` and
+`codex-task-delegator`. They are kept for reference and are not installed.
+
+> **Honest scope.** The `codex` and `gemini-delegate` skills drive external CLIs I did not build.
+> `explain-diff-html` is external, and `align` is built on Matt Pocock's `grilling` method. What is
+> mine and what is not: [`PROVENANCE.md`](PROVENANCE.md).
 
 ---
 
-## 2. State & Memory (`skills/state-memory/`)
+## State & memory: the `.doruk/` folder
 
 The committed `.doruk/` layer: how the harness remembers across sessions, machines, and parallel
 agents. The mental model in one line: **treat the context window as RAM and `.doruk/` as the disk**.
 One discipline holds it together: **reference, don't duplicate** — each fact has one home, the board
 points at the record, the record points at the PR.
 
-| Skill | Role | What it does |
-|---|---|---|
-| **`handoff`** | orient | Universal `.doruk/` state for any repo. Maintains a `STATE.md` landscape (active / parked / done, with open tasks per row), a `BACKLOG.md` of planned work by level, and each feature's live `handoff.md`. Bootstraps `.doruk/` on first use, so a repo needs no manual setup. |
-| **`feature-roadmap`** | plan | Durable step-spine for multi-step programs. When a feature has ordered phases that span sessions (craft→test→refine, a migration, an audit sweep), adds a `roadmap.md` beside `handoff.md` so the map never gets clobbered by Markov rewrites. `handoff.md` shrinks to a two-line pin; `roadmap.md` holds the full step list, a mermaid flow, and a checkable "Done when" per step. |
-| **`feature-organize`** | distill | Post-ship distillation. Turns a feature folder's in-flight scratch into a durable `feature.md` record (decisions + WHY) and triages aux files: keep / archive / delete. Full mode rewrites on close; narrow mode appends one note when a sub-deliverable ships. |
-| **`wrap`** | multi-agent | End-of-session wrap-up for multi-agent feature folders where each agent owns one folder. Runs 5 consistency checks (state agreement, stale links, cross-folder writes, handoff trim, date convention) then the mechanical updates. Composes with `handoff`. |
-
-The substrate all three operate on:
+The folder the four state skills operate on:
 
 ```
 .doruk/
@@ -208,7 +333,7 @@ flowchart LR
     class HND,REC,SCR,MEM rec;
 ```
 
-**Who moves what** — the three state skills are the movers between these files:
+**Who moves what** — the four state skills are the movers between these files:
 
 | Navigation | Driven by |
 |---|---|
@@ -223,76 +348,73 @@ moving, and the memory is already there.
 
 ---
 
-## 3. Delegation (`skills/delegation/`)
+## Install
 
-Hand a unit of work to a **different model** — OpenAI Codex or Google Gemini — without giving up
-control or safety, and isolate any branch work in its own git worktree. The git worktree is the
-isolation primitive: the delegate works sandboxed in its own checkout, and the driving agent reviews
-the diff before any of it reaches the main branch.
+You need Claude Code and `python3` (for the hooks). The review gates also need the OpenAI Codex CLI,
+installed and signed in: `npm i -g @openai/codex && codex auth`. `gemini-delegate` needs
+`npm i -g @google/gemini-cli`.
 
-> **Honest scope.** The Codex and Gemini skills **orchestrate external CLIs I did not build** — I
-> drive the OpenAI Codex CLI and the Google Gemini CLI as subprocesses. The skills are mine; the CLIs
-> and the models behind them are not. See [`PROVENANCE.md`](PROVENANCE.md).
+### Quick install: skills and orchestration
 
-| Skill | Role | What it does |
-|---|---|---|
-| **`codex`** | both | Orchestrates the OpenAI Codex CLI as either a **read-only consultant** (plan/spec/diff review, pinned to **Sol**, reviews never run on the labor model) or a **worktree implementer** (pinned to **Luna at max effort**). One router skill picks the mode from the request. Merges what were two separate skills (`codex-feedback-planning`, `codex-task-delegator`), now kept in [`skills/legacy/`](skills/legacy/README.md) for reference. |
-| **`gemini-delegate`** | both | Orchestrates the Google Gemini CLI in either role — read-only consultant or sandboxed worktree implementer. Same shape as `codex`, a different model. |
-| **`orchestrate`** | reference | Which-agent-when lookup table for a build where every unit of work is delegated to a model-tiered subagent: Fable once up front for the hardest design/plan, Codex Luna at max effort for background labor and Sonnet for interactive labor, Opus for the tricky logic, Codex Sol for the review gates. Ships with an optional [`coordinator-hook.sh`](skills/delegation/orchestrate/coordinator-hook.sh) — a `SessionStart` hook that detects coordinator-tier models (Fable/Opus) and injects a pointer to this skill at session start; silent for everything else. Setup: [`HOOK-INSTALL.md`](skills/delegation/orchestrate/HOOK-INSTALL.md). |
-| **`worktree-init`** | isolate | Creates an isolated git worktree for a branch, copies the untracked local files git won't carry (`.env`, IDE rules, agent config), and bootstraps the environment so the worktree runs immediately. |
-| **`worktree-lifecycle`** | context | Auto-loaded operating manual for an agent running *inside* a worktree: orient, build/test with isolated host resources (own ports, own container-stack name), and clean up without losing uncommitted work. |
+```bash
+git clone https://github.com/doruktarhan/doruk-ai-harness.git
+cd doruk-ai-harness
+./install.sh --hooks                             # 14 skills + the three user-level hooks
+./install.sh --project-hook ~/code/my-project    # opt-in: main-session rules for that project
+```
 
-Two practical invariants the delegation skills encode, learned the hard way driving these CLIs
-non-interactively: **sandbox the writes** (run the delegate in workspace-write / yolo mode inside the
-worktree so the worktree boundary contains the blast radius) and **close stdin** (redirect
-`< /dev/null` on the CLI invocation, or it hangs at 0% CPU waiting for end-of-input — the single most
-common failure mode in scripted delegation).
+Then start a new Claude Code session in that project.
 
----
+- **`./install.sh`** copies every skill into `~/.claude/skills/`, flattening the group folders,
+  because Claude Code finds skills by name. `skills/legacy/` is skipped.
+- **`--hooks`** also registers `foreman-hook.sh` and the two `depth-gauge.sh` entries in
+  `~/.claude/settings.json`.
+- **`--project-hook DIR`** adds the `SessionStart` hook to `DIR/.claude/settings.json`. Run it once
+  per project where the main session should be intake only. The entry uses `$HOME`, so the file can
+  be committed and shared.
+- **`--dry-run`** with any of these prints what would change and changes nothing.
 
-## 4. Understanding (`skills/understanding/`)
+The script is safe to run twice. Installing replaces the folders named after this harness's skills,
+only its own hook entries are added or removed, and it writes a timestamped backup beside any
+settings file before changing it. Set
+`CLAUDE_HOME` to install somewhere other than `~/.claude`.
 
-Skills whose job is to make an *outcome* legible, not to produce one — turning a diff, a plan, or an
-answer into something a human can actually absorb. In the same spirit as the built-in `simple` /
-`tldr` re-explain knobs, but heavier-weight: instead of compressing text, this category renders a
-standalone, explorable artifact.
+**Check that it works.** In a new session in the opted-in project, ask: "quote the first sentence of
+the orchestration rules in your context". The answer should be "Orchestration rules for the main
+session." Two more checks are in [`HOOK-INSTALL.md`](skills/delegation/orchestrate/HOOK-INSTALL.md).
 
-> **Honest scope.** `explain-diff-html` is external — credit to Geoffrey Litt. See [`PROVENANCE.md`](PROVENANCE.md).
+### Skills only
 
-| Skill | Role | What it does |
-|---|---|---|
-| **`explain-diff-html`** | explain | Turns a code change, diff, branch, or PR into a self-contained HTML page: background, core intuition with toy examples, a walkthrough of the code, and a five-question interactive quiz to check understanding. |
+Any one of these; none of them registers a hook.
 
----
+```bash
+./install.sh                                         # the script, without --hooks
+mkdir -p ~/.claude/skills && cp -R skills/*/*/ ~/.claude/skills/   # by hand
+```
 
-## 5. Meta (`skills/meta/`)
+```
+/plugin marketplace add doruktarhan/doruk-ai-harness
+/plugin install doruk-ai-harness@doruk-ai-harness
+```
 
-Skills about how the other skills — and any instructions fed to a frontier model — get written.
+The plugin route loads all 14 skills from the [`skills[]` manifest](.claude-plugin/plugin.json). The
+hooks and the role files point at `~/.claude/skills/orchestrate/`, so the orchestration setup needs
+the script route.
 
-| Skill | Role | What it does |
-|---|---|---|
-| **`lean-instructions`** | write/audit | Rules and an audit procedure for writing skills, `CLAUDE.md`/`AGENTS.md`, hooks, and task prompts for frontier models: narrow triggers, no unconditional pre-reads, permission statements instead of caution language, a stated Done condition. Derived from the OpenAI post cited above — see [`references/astra-2026-09.md`](skills/meta/lean-instructions/references/astra-2026-09.md). v3 (above) is this skill applied to itself. |
+> **Configure once.** A few skills leave project-specific placeholders — base branch, test and lint
+> commands, path conventions — marked inline as `<...>`. Fill them on first use.
 
----
+## Uninstall
 
-## 6. Jev Browser · separate repo, new
+```bash
+./install.sh --uninstall-hooks                          # remove the user-level hooks, keep the skills
+./install.sh --remove-project-hook ~/code/my-project    # remove one project's SessionStart hook
+./install.sh --uninstall                                # remove the hooks and the 14 skill folders
+```
 
-**[`doruktarhan/jev-browser`](https://github.com/doruktarhan/jev-browser)**: a skill plus the `jb`
-CLI, which I extracted from [Cline](https://github.com/cline/cline)'s Jev integration (Apache-2.0)
-and rebuilt as a standalone tool any coding agent can call. The agent hands a whole "find / open / fill this on a website" goal to **Jev**, TypeSafe
-AI's browser-action model, in one call, and gets back a small JSON summary and a screenshot. It lives
-in its own repo, with its own install and a full benchmark.
-
-From the [72-run benchmark against Playwright MCP](https://github.com/doruktarhan/jev-browser/blob/main/benchmarks/2026-09-24/README.md):
-
-- **Good at docs search, short forms, and listing clicks.** Python docs, react.dev, playwright.dev,
-  Wikipedia, and both forms passed 3/3, in 2–5 steps.
-- **Much cheaper for the calling agent.** It used 30% fewer tokens across all runs and about half
-  on heavy pages (44k vs 92–118k).
-- **Less reliable than Playwright MCP.** It passed 86% of runs against 100%. It failed MDN (never
-  found the search box) and a GitHub file lookup, and multi-step filters needed retries.
-- **Routing rule:** use Jev first for navigation. Use Playwright MCP for testing, assertions,
-  network/console inspection, and whenever Jev returns `BLOCKED` or `step_limit`.
+Only this harness's hook entries are removed, and only skill folders this script installed; your
+other hooks and skills stay. For the
+plugin route: `/plugin uninstall doruk-ai-harness@doruk-ai-harness`.
 
 ---
 
@@ -314,73 +436,57 @@ through chat logs.
 
 ---
 
-## Install
+## Jev Browser · separate repo
 
-Three ways to install, fastest first. All of them put every skill where Claude Code can discover it.
+**[`doruktarhan/jev-browser`](https://github.com/doruktarhan/jev-browser)**: a skill plus the `jb`
+CLI, which I extracted from [Cline](https://github.com/cline/cline)'s Jev integration (Apache-2.0)
+and rebuilt as a standalone tool any coding agent can call. The agent hands a whole "find / open / fill this on a website" goal to **Jev**, TypeSafe
+AI's browser-action model, in one call, and gets back a small JSON summary and a screenshot. It lives
+in its own repo, with its own install and a full benchmark.
 
-### Option 1 — install script (recommended, guaranteed)
+From the [72-run benchmark against Playwright MCP](https://github.com/doruktarhan/jev-browser/blob/main/benchmarks/2026-09-24/README.md):
 
-`install.sh` copies **every leaf skill** (each `skills/<block>/<name>/`) into `~/.claude/skills/`,
-**flattening** the category directories — the `workflow/`, `state-memory/`, `delegation/` folders
-exist for browsing, but Claude Code discovers skills by name, so the installed layout is flat.
-`skills/legacy/` is skipped on purpose — those skills are reference-only, never installed. It's
-**idempotent** — safe to re-run; it overwrites the harness's own skills and never touches anything
-else in that folder.
+- **Good at docs search, short forms, and listing clicks.** Python docs, react.dev, playwright.dev,
+  Wikipedia, and both forms passed 3/3, in 2–5 steps.
+- **Much cheaper for the calling agent.** It used 30% fewer tokens across all runs and about half
+  on heavy pages (44k vs 92–118k).
+- **Less reliable than Playwright MCP.** It passed 86% of runs against 100%. It failed MDN (never
+  found the search box) and a GitHub file lookup, and multi-step filters needed retries.
+- **Routing rule:** use Jev first for navigation. Use Playwright MCP for testing, assertions,
+  network/console inspection, and whenever Jev returns `BLOCKED` or `step_limit`.
 
-```bash
-git clone https://github.com/doruktarhan/doruk-ai-harness.git
-cd doruk-ai-harness
-./install.sh           # copy all leaf skills into ~/.claude/skills/ (flattened)
-./install.sh --dry-run # show what it would do, change nothing
-./install.sh --help    # usage
-```
+---
 
-Restart Claude Code (or start a new session) to pick up the newly installed skills.
+## Why I built this
 
-### Option 2 — Claude Code plugin (via `/plugin`)
+> *First person, because it's mine and I want to be honest about why it exists, not sell it.*
 
-The harness also ships as a Claude Code **plugin**, served from its own single-plugin
-**marketplace**. From inside Claude Code:
+Two things kept going wrong when I built with an AI agent. First, **"just build it" sessions went
+sideways**: either the agent spammed me at every micro-step, or it ran off and produced a large diff
+I then had to reverse-engineer and quality-check by hand. Second, **the context window is a terrible
+memory**: it evaporates on compaction or a new session, it doesn't travel across machines, and it
+rots silently as the model paraphrases its own earlier notes.
 
-```
-/plugin marketplace add doruktarhan/doruk-ai-harness
-/plugin install doruk-ai-harness@doruk-ai-harness
-```
+So I built a system instead of collecting prompts. A task starts in loose discussion, its decisions
+get pinned, and then it is built by an agent sized for it, with the work reviewed by a *genuinely
+different* model before it merges. The point is structural: the version that lands is the reviewed
+one by construction, not because I remembered to ask for a review afterward. The memory lives on
+disk in one committed `.doruk/` folder, and the context window is treated as disposable scratch.
 
-- The first command registers this repo as a marketplace (it contains
-  [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json)).
-- The second installs the `doruk-ai-harness` plugin
-  ([`.claude-plugin/plugin.json`](.claude-plugin/plugin.json)).
+### Why it is lean: written for Fable-class models
 
-> **All 14 skills load natively.** The skills live under category subdirectories
-> (`skills/<block>/<name>/`), and each leaf is declared explicitly in the plugin's
-> [`skills[]` manifest](.claude-plugin/plugin.json). Claude Code reads that manifest, so the plugin
-> route picks up every skill without flattening — no reliance on subdirectory recursion.
-> `skills/legacy/` is deliberately absent from the manifest. `install.sh`
-> (Option 1) remains an offline / non-Claude-Code fallback that flattens every leaf into
-> `~/.claude/skills/` directly.
+OpenAI's September 2026 post *"Rethinking skills and prompts for GPT-6 Astra"* argues that
+scaffolding built to babysit a weaker model — broad triggers, mandatory pre-reads, CAUTION/NEVER
+language — slows a frontier model down. v3 applied that here: `align` was rebuilt lean on Matt
+Pocock's `grilling` method, the two Codex skills merged into `codex`, and `ship`'s scripted pipeline
+gave way to `orchestrate`. The rules live in
+[`skills/meta/lean-instructions`](skills/meta/lean-instructions).
 
-### Option 3 — manual copy
-
-If you'd rather not run the script, copy the leaf skill folders yourself, flattening the category
-dirs:
-
-```bash
-mkdir -p ~/.claude/skills
-cp -R skills/*/*/ ~/.claude/skills/
-```
-
-Each `skills/<block>/<name>/SKILL.md` is a standard Claude Code skill with YAML frontmatter; dropping
-the leaf folder into `~/.claude/skills/` is all that's required.
-
-> **Configure once.** A few skills leave project-specific placeholders — base branch, test/lint
-> commands, path conventions — marked inline as `<...>`. Fill them on first use, or wire them into a
-> thin project wrapper skill that calls these.
->
-> **External CLIs (delegation + orchestrate's review gates).** The Codex and Gemini skills require
-> their CLIs to be installed separately and authenticated: `npm i -g @openai/codex && codex auth` ·
-> `npm i -g @google/gemini-cli`. The skills check for these and tell you if they're missing.
-
+v4 (November 2026) took the next step with `orchestrate` itself. A review of ten days of sessions
+showed the skill's pointer was displayed 18 times and the skill was loaded 0 times, so the rules
+moved out of the skill body into two short role files that hooks load at the moment they apply.
+Routing by task class gave way to routing by size, and the review gates moved to the foreman, who
+was already running nearly all of them.
 
 ---
 
@@ -389,16 +495,17 @@ the leaf folder into `~/.claude/skills/` is all that's required.
 ```
 doruk-ai-harness/
 ├── README.md                     # you are here
-├── install.sh                    # idempotent installer → flattens leaf skills into ~/.claude/skills/
+├── install.sh                    # skills, hooks (--hooks), per-project hook (--project-hook), uninstall
 ├── LICENSE                       # MIT
 ├── PROVENANCE.md                 # honest attribution
 ├── .claude-plugin/
 │   ├── plugin.json               # the doruk-ai-harness plugin (bundles all skills)
 │   └── marketplace.json          # single-plugin marketplace for /plugin
 ├── skills/
-│   ├── workflow/                 # discuss (the headline) · align · prove-it
+│   ├── workflow/                 # discuss · align · prove-it
 │   ├── state-memory/             # handoff · feature-roadmap · feature-organize · wrap
-│   ├── delegation/               # codex · gemini-delegate · orchestrate · worktree-init · worktree-lifecycle
+│   ├── delegation/               # orchestrate · codex · gemini-delegate · worktree-init · worktree-lifecycle
+│   │   └── orchestrate/          # roles/main.md · roles/foreman.md · main-hook.sh · foreman-hook.sh · depth-gauge.sh
 │   ├── understanding/            # explain-diff-html (third-party, imported verbatim — see PROVENANCE.md)
 │   ├── meta/                     # lean-instructions
 │   └── legacy/                   # ship · codex-feedback-planning · codex-task-delegator — reference only, not installed
@@ -406,6 +513,10 @@ doruk-ai-harness/
 ├── demo-app/                     # worked example: a real .doruk/ mid-flight
 └── web/index.html                # interactive showcase (GitHub Pages)
 ```
+
+More depth: [`docs/system-and-flow.md`](docs/system-and-flow.md) (the architecture),
+[`docs/memory-system.md`](docs/memory-system.md) (why the memory layer is shaped the way it is),
+[`docs/diagram.md`](docs/diagram.md) (the skill map as one diagram).
 
 ---
 

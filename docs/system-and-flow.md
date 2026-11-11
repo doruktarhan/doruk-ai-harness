@@ -53,9 +53,10 @@ Align does not hand off to a fixed next skill. When the decisions are pinned:
 
 - For most work, build it directly in the session.
 - For a big, multi-step build the user wants delegated across subagents, `orchestrate`
-  (`skills/delegation/orchestrate`) picks which model goes where: Fable for the hardest
-  design, Opus drafting constrained designs, Codex Luna or Sonnet for labor, Codex Sol or
-  Astra reviewing the frozen spec and the final diff before anything lands. A human stays in
+  (`skills/delegation/orchestrate`) routes it by size: a Sonnet agent for a tiny change or a check, an Opus foreman for a
+  low-logic build, a Fable foreman at medium effort for a scoped build or design. Each
+  foreman runs its own Sonnet helpers and has Codex Sol or Astra review the frozen spec and
+  the final diff before anything lands (the block-by-block picture is in the README). A human stays in
   the loop at the points that matter — the design draft, the review gate, and the land
   decision — and a *genuinely different* model is what reviews the spec and the diff, so a
   single model never grades its own work.

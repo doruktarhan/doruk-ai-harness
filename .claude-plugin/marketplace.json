@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Doruk's AI coding harness for Claude Code — discuss to find a task's shape, align to pin down the decisions, then build directly or hand a multi-step build to orchestrate, backed by a committed .doruk/ state & memory layer and cross-model delegation (Codex, Gemini) in isolated git worktrees.",
-    "version": "3.0.0"
+    "version": "4.0.0"
   },
   "plugins": [
     {
